@@ -22,18 +22,20 @@
 
 The platform utilizes a highly optimized LLM orchestration engine to generate a complete Software Development Life Cycle (SDLC) blueprint, outputting everything from microservice container strategies to granular REST API definitions.
 
+---
+
 ## 🏗 System Architecture
 
-BuildFlow-AI is built on a resilient, multi-tiered architecture powered by Next.js and a custom AI orchestration engine.
+BuildFlow-AI is built on a resilient, multi-tiered architecture powered by Next.js and a custom AI orchestration engine. The diagram below illustrates the end-to-end data flow from the moment a user submits an idea to the moment the visualization renders.
 
 ```mermaid
 graph TD
     subgraph Client [Frontend UI - React 19]
-        A[User Input & Settings] --> B[AiDashboard]
-        B --> C[Interactive Visualizations]
+        A[User Input & Settings] -->|Submit Idea| B[Dashboard Engine]
+        B -->|Raw Blueprint| C[Visualizer Components]
     end
 
-    subgraph Server [Next.js App Router]
+    subgraph Server [Next.js App Router API]
         D[POST /api/generate]
         E[Firebase Admin Auth]
     end
@@ -42,50 +44,111 @@ graph TD
         F{Model Router}
         G[Groq Adapter]
         H[OpenAI Adapter]
-        I[Anthropic Adapter]
-        J[Zod Schema Validator & Repair]
+        I[Zod Schema Validator]
     end
 
     A -->|JWT Token| D
-    D -->|Validate| E
+    D <-->|Verify Token| E
     D -->|Idea + Parameters| F
     
     F -->|Priority 1| G
     F -.->|Fallback| H
-    F -.->|Fallback| I
     
-    G -->|Raw JSON| J
-    J -->|Validated Blueprint| D
-    D -->|Response| C
+    G -->|Raw JSON| I
+    H -->|Raw JSON| I
+    
+    I -->|Validated Schema| D
+    D -->|JSON Response| B
 ```
 
 ---
 
-## ✨ Core Features
+## ✨ Core Features & Technical Deep Dives
 
-### 1. Dynamic Detail Scaling
+### 1. Intelligent AI Orchestration (Platform V3)
+BuildFlow uses a **Cascade Routing System**. If a primary provider (like Groq) hits a rate limit or times out, the platform seamlessly fails over to an alternative model, ensuring zero downtime for the user.
+
+```mermaid
+sequenceDiagram
+    participant UI as Client (Browser)
+    participant API as Next.js API
+    participant Router as Model Router
+    participant Groq as Groq (Llama 3.3)
+    participant OpenAI as OpenAI (GPT-4o)
+    participant Validator as Zod Validator
+
+    UI->>API: POST /generate (Idea)
+    API->>Router: Route Request
+    
+    Router->>Groq: Attempt 1 (Fastest)
+    alt Groq Rate Limited (429)
+        Groq-->>Router: Error
+        Router->>OpenAI: Attempt 2 (Fallback)
+        OpenAI-->>Router: JSON Blueprint
+    else Groq Success
+        Groq-->>Router: JSON Blueprint
+    end
+    
+    Router->>Validator: Validate strictly
+    Validator-->>API: Validated BuildFlow Object
+    API-->>UI: 200 OK + Data
+```
+
+### 2. Interactive AI Visualizations (Fault-Tolerant Engine)
+Because Large Language Models can sometimes hallucinate invalid syntax when writing Mermaid diagrams, BuildFlow features a custom **Fault-Tolerant Parser**. The frontend gracefully isolates valid nodes and edges from malformed strings and builds a Directed Acyclic Graph (DAG) for rendering.
+
+```mermaid
+stateDiagram-v2
+    [*] --> RawString: AI outputs Mermaid String
+    RawString --> Parser: Custom regex parser
+    
+    state Parser {
+        ExtractNodes --> ExtractEdges
+        ExtractEdges --> RepairSyntax: Handle missing brackets
+    }
+    
+    Parser --> DAG: Generate Directed Acyclic Graph
+    
+    state DAG {
+        CalculateLayers --> ResolveCycles
+    }
+    
+    DAG --> Render
+    Render --> InteractiveCanvas: Map nodes to Framer Motion components
+    InteractiveCanvas --> [*]
+```
+
+### 3. Secure Firebase Authentication
+Every user session is secured using Firebase Authentication. The Next.js API endpoints are strictly guarded using Firebase Admin to verify JWT tokens on the backend before any LLM generation begins, preventing quota abuse.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend as Next.js Client
+    participant FirebaseClient as Firebase Auth
+    participant API as Next.js API (Backend)
+    participant FirebaseAdmin as Firebase Admin
+
+    User->>Frontend: Click Login (Google/GitHub)
+    Frontend->>FirebaseClient: Authenticate
+    FirebaseClient-->>Frontend: Returns JWT ID Token
+    
+    Frontend->>API: POST /api/generate (Header: Bearer Token)
+    API->>FirebaseAdmin: verifyIdToken(Token)
+    
+    alt Token Invalid / Expired
+        FirebaseAdmin-->>API: Error
+        API-->>Frontend: 401 Unauthorized
+    else Token Valid
+        FirebaseAdmin-->>API: Decoded User Data
+        API->>API: Proceed with Generation
+    end
+```
+
+### 4. Dynamic Detail Scaling
 Choose the exact level of architectural depth you need:
 - **Standard Mode:** Perfect for rapid prototyping. Outputs concise, rate-limit friendly blueprints (~2,500 tokens).
 - **Enterprise Mode:** Designed for massive scale. Outputs deep documentation, complex scaling strategies, and granular database indexing rules (~8,000 tokens).
-
-### 2. Intelligent AI Orchestration (Platform V3)
-BuildFlow doesn't just blindly call an API. It uses a **Cascade Routing System**:
-- Automatically falls back to alternative models if a provider (e.g., Groq) hits a rate limit or times out.
-- Enforces strict JSON formatting using `response_format: { type: "json_object" }`.
-- Parses and repairs malformed schema structures dynamically.
-
-### 3. Interactive Visualizations
-BuildFlow parses AI-generated Mermaid graphs and renders them into beautiful, interactive React components:
-- **Interactive ER Diagrams:** Visualizes databases with interactive hover states highlighting Primary/Foreign key relationships.
-- **Architecture Flowcharts:** Maps out complex microservice communication layers.
-
-### 4. Comprehensive SDLC Blueprints
-Every generation provides:
-- **Executive Overview:** Timeline, team size, and complexity scoring.
-- **Database Architecture:** Tables, relationships, sharding strategies, and query optimizations.
-- **API Specifications:** Granular route definitions, validation rules, and caching opportunities.
-- **Engineering Roadmap:** Dynamic sprint planning with parallel workstreams.
-- **Risk Assessment:** Anticipation of technical debt and security vulnerabilities.
 
 ---
 
