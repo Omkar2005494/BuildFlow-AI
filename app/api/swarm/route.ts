@@ -355,6 +355,59 @@ app.post("/api/v1/${domainProfile.key}-records", (req: Request, res: Response) =
 export default app;`
       },
       {
+        path: "components/features/MainDashboard.tsx",
+        language: "tsx",
+        description: `Client component with domain state for ${projectName}`,
+        agentAuthor: "Frontend UI Builder",
+        code: `"use client";
+
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Sparkles, Shield, Activity, Database, CheckCircle2 } from "lucide-react";
+
+// Synthesized UI Component for: ${projectName}
+export function MainDashboard() {
+  const [activeTab, setActiveTab] = useState("${domainProfile.categories[0]}");
+
+  return (
+    <div className="w-full min-h-[400px] p-6 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl">
+      <div className="flex items-center justify-between pb-6 border-b border-white/5">
+        <div>
+          <h2 className="text-xl font-bold text-white">${domainProfile.domainTitle}</h2>
+          <p className="text-sm text-white/50">${domainProfile.domainSubtitle}</p>
+        </div>
+        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          ● Live Operational
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+        <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
+          <span className="text-xs text-white/40 uppercase">${domainProfile.kpis[0].title}</span>
+          <div className="text-xl font-bold text-white mt-1">${domainProfile.kpis[0].value}</div>
+          <p className="text-[11px] text-emerald-400 mt-0.5">${domainProfile.kpis[0].change}</p>
+        </div>
+        <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
+          <span className="text-xs text-white/40 uppercase">${domainProfile.kpis[1].title}</span>
+          <div className="text-xl font-bold text-white mt-1">${domainProfile.kpis[1].value}</div>
+          <p className="text-[11px] text-blue-400 mt-0.5">${domainProfile.kpis[1].change}</p>
+        </div>
+        <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
+          <span className="text-xs text-white/40 uppercase">${domainProfile.kpis[2].title}</span>
+          <div className="text-xl font-bold text-emerald-400 mt-1">${domainProfile.kpis[2].value}</div>
+          <p className="text-[11px] text-white/40 mt-0.5">${domainProfile.kpis[2].change}</p>
+        </div>
+        <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
+          <span className="text-xs text-white/40 uppercase">${domainProfile.kpis[3].title}</span>
+          <div className="text-xl font-bold text-indigo-400 mt-1">${domainProfile.kpis[3].value}</div>
+          <p className="text-[11px] text-white/40 mt-0.5">${domainProfile.kpis[3].change}</p>
+        </div>
+      </div>
+    </div>
+  );
+}`
+      },
+      {
         path: "tests/api.unit.test.ts",
         language: "typescript",
         description: "Automated test suite synthesized by Quality & Testing Auditor",
