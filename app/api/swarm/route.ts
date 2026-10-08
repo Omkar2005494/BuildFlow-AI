@@ -351,7 +351,7 @@ Return valid JSON with:
     { "sender": "Quality & Testing Auditor", "role": "testing", "message": "Re-test PASSED: All 18 automated tests green. Zero security vulnerabilities. Approving for release.", "timestamp": "10:18:23 AM", "type": "approval" },
     { "sender": "Deployment & DevOps Agent", "role": "deployment", "message": "Synthesized multi-stage Dockerfile and deployment bundle. Ready for production rollout.", "timestamp": "10:18:28 AM", "type": "approval" }
   ],
-  "interactiveAppHtml": "<!DOCTYPE html>..."
+  "interactiveAppHtml": "Complete executable single-file HTML5 application starting with <!DOCTYPE html> containing Tailwind CDN, Chart.js, KPI cards, table, and interactive script"
 }`;
 
     let parsedResponse: any = null;
@@ -393,9 +393,16 @@ Return valid JSON with:
       }
     }
 
-    // Determine interactive app code
+    // Determine interactive app code - must be valid, non-truncated, complete HTML
     let synthesizedHtml = "";
-    if (parsedResponse?.interactiveAppHtml && parsedResponse.interactiveAppHtml.includes("<!DOCTYPE html>")) {
+    if (
+      parsedResponse?.interactiveAppHtml &&
+      typeof parsedResponse.interactiveAppHtml === "string" &&
+      parsedResponse.interactiveAppHtml.length > 350 &&
+      parsedResponse.interactiveAppHtml.includes("<!DOCTYPE html>") &&
+      parsedResponse.interactiveAppHtml.includes("<body") &&
+      parsedResponse.interactiveAppHtml.includes("<script")
+    ) {
       synthesizedHtml = parsedResponse.interactiveAppHtml;
     } else {
       synthesizedHtml = generateProductionAppHtml(projectName, idea);
