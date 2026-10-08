@@ -134,7 +134,7 @@ Return valid JSON with:
     { "sender": "Quality & Testing Auditor", "role": "testing", "message": "Re-test PASSED: All automated tests green. Zero security vulnerabilities. Approving for release.", "timestamp": "10:18:23 AM", "type": "approval" },
     { "sender": "Deployment & DevOps Agent", "role": "deployment", "message": "Synthesized Dockerfile and deployment bundle. Ready for production rollout.", "timestamp": "10:18:28 AM", "type": "approval" }
   ],
-  "interactiveAppHtml": "Complete executable single-file HTML5 application starting with <!DOCTYPE html> containing Tailwind CDN, Chart.js, 4 domain KPI cards, domain chart, search and category filter, interactive domain table for ${domainProfile.entityNamePlural}, and functional ${domainProfile.addButtonLabel} modal. DO NOT INCLUDE SERVER TELEMETRY."
+  "interactiveAppHtml": "(Optional) Complete single-file HTML5 or omit to use autonomous generator."
 }`;
 
     let parsedResponse: any = null;
@@ -148,8 +148,13 @@ Return valid JSON with:
 
     const tryGroq = async () => {
       const adapter = new GroqAdapter();
-      const raw = await adapter.generateJSON(prompt, "qwen/qwen3.8-27b");
-      return JSON.parse(raw);
+      try {
+        const raw = await adapter.generateJSON(prompt, "qwen/qwen3.8-27b", 800);
+        return JSON.parse(raw);
+      } catch (err: any) {
+        console.warn("Groq qwen failed:", err.message);
+        throw err;
+      }
     };
 
     if (runtimeMode === "local-llama") {

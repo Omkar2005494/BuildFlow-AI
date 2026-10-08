@@ -153,10 +153,10 @@ export const MODEL_REGISTRY: ModelRegistryEntry[] = [
     }
   },
   {
-    id: "llama-3.3-70b-versatile",
+    id: "llama-3.1-8b-instant",
     providerId: "groq",
-    displayName: "Llama 3.3 70B (Groq)",
-    contextWindow: 8192,
+    displayName: "Llama 3.1 8B Instant (Groq)",
+    contextWindow: 128000,
     maxOutputTokens: 8192,
     speedRating: 5,
     qualityRating: 4.5,
@@ -168,24 +168,6 @@ export const MODEL_REGISTRY: ModelRegistryEntry[] = [
       streaming: true,
       toolCalling: true,
       reasoning: true
-    }
-  },
-  {
-    id: "mixtral-8x7b-32768",
-    providerId: "groq",
-    displayName: "Mixtral 8x7B (Groq)",
-    contextWindow: 32768,
-    maxOutputTokens: 8192,
-    speedRating: 5,
-    qualityRating: 4,
-    reasoningRating: 3.5,
-    estimatedCostPer1M: 0,
-    capabilities: {
-      jsonOutput: true,
-      vision: false,
-      streaming: true,
-      toolCalling: true,
-      reasoning: false
     }
   },
 

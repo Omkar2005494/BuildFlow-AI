@@ -32,6 +32,9 @@ export interface DomainProfile {
   };
   tableColumns: [string, string, string, string, string, string];
   defaultEntities: DomainEntity[];
+  sampleBatchNames: string[];
+  defaultNewMetric?: string;
+  defaultNewStatus?: string;
 }
 
 export interface DomainAppConfig {
@@ -42,7 +45,25 @@ export interface DomainAppConfig {
 }
 
 export function detectDomainProfile(config: DomainAppConfig): DomainProfile {
-  const safeName = config.projectName || "Enterprise Solution";
+  const cleanDomainTitle = (raw: string) => {
+    const stripped = raw
+      .replace(/^(please\s+)?(create|build|make|design|generate|develop|setup|implement|code|write)\s+(an?|the)?\s*(application|app|system|platform|portal|dashboard|tool|service|solution|project)?\s*(for|to|of|about)?\s*/i, "")
+      .replace(/\s+(fo|for|to|in|of|and|the|a|an)$/i, "")
+      .trim();
+    if (!stripped) return raw;
+    return stripped
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  };
+
+  const rawProjectName = config.projectName || "";
+  const safeName = rawProjectName
+    ? (rawProjectName.toLowerCase().startsWith("create ") || rawProjectName.toLowerCase().startsWith("build ") || rawProjectName.toLowerCase().startsWith("a ") || rawProjectName.toLowerCase().startsWith("an ")
+        ? cleanDomainTitle(rawProjectName)
+        : rawProjectName)
+    : (config.category || "Live Operational App");
+
   const haystack = [
     config.projectName || "",
     config.category || "",
@@ -50,35 +71,38 @@ export function detectDomainProfile(config: DomainAppConfig): DomainProfile {
     ...(config.features?.map(f => `${f.name} ${f.description}`) || [])
   ].join(" ").toLowerCase();
 
+  // Helper to map project's real features into domain entity rows
+  const buildFeatureEntities = (defaultCategory: string, defaultMetricPrefix: string, defaultStatus = "Active"): DomainEntity[] => {
+    if (config.features && config.features.length > 0) {
+      return config.features.slice(0, 4).map((f, i) => ({
+        id: `REC-0${i + 1}`,
+        name: f.name,
+        category: f.priority ? `${f.priority} Tier` : defaultCategory,
+        metric: f.description.slice(0, 45) + (f.description.length > 45 ? "..." : ""),
+        status: defaultStatus,
+        timestamp: "Active"
+      }));
+    }
+    return [];
+  };
+
   // 1. Mesh / Networking / IoT / Edge / Wireless / P2P
   if (
-    haystack.includes("mesh") ||
-    haystack.includes("network") ||
-    haystack.includes("routing") ||
-    haystack.includes("peer") ||
-    haystack.includes("p2p") ||
-    haystack.includes("node") ||
-    haystack.includes("lora") ||
-    haystack.includes("packet") ||
-    haystack.includes("gateway") ||
-    haystack.includes("topology") ||
-    haystack.includes("iot")
+    /\b(mesh|lora|p2p|peer-to-peer|ad-hoc)\b/i.test(haystack) ||
+    haystack.includes("packet routing") ||
+    haystack.includes("mesh topology") ||
+    haystack.includes("sensor mesh") ||
+    haystack.includes("iot mesh") ||
+    haystack.includes("mesh node") ||
+    (/\b(nodes?|gateway)\b/i.test(haystack) && (haystack.includes("packet") || haystack.includes("rf ") || haystack.includes("topology") || haystack.includes("peer")))
   ) {
-    const featureEntities: DomainEntity[] = (config.features && config.features.length > 0)
-      ? config.features.slice(0, 4).map((f, i) => ({
-          id: `NODE-0${i + 1}`,
-          name: f.name,
-          category: i === 0 ? "Gateway" : i % 2 === 1 ? "Relay" : "Edge Node",
-          metric: `${-40 - i * 11} dBm • ${(1.2 + i * 0.9).toFixed(1)}ms`,
-          status: "Online",
-          timestamp: "Active"
-        }))
-      : [
-          { id: "NODE-GW-01", name: "Primary Gateway Uplink (Fiber Backhaul)", category: "Gateway", metric: "-42 dBm • 1.1ms", status: "Online", timestamp: "Just now" },
-          { id: "NODE-RL-02", name: "Multi-Hop Dynamic Relay (802.11s)", category: "Relay", metric: "-54 dBm • 2.4ms", status: "Online", timestamp: "2m ago" },
-          { id: "NODE-ED-03", name: "Edge Sensor Cluster Mesh Bridge", category: "Edge Node", metric: "-62 dBm • 3.8ms", status: "Online", timestamp: "4m ago" },
-          { id: "NODE-RL-04", name: "Zero-Trust Encrypted P2P Tunnel", category: "Relay", metric: "-48 dBm • 1.8ms", status: "Online", timestamp: "7m ago" }
-        ];
+    const featureEntities = buildFeatureEntities("Gateway", "-50 dBm");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "NODE-GW-01", name: "Primary Gateway Uplink (Fiber Backhaul)", category: "Gateway", metric: "-42 dBm • 1.1ms", status: "Online", timestamp: "Just now" },
+      { id: "NODE-RL-02", name: "Multi-Hop Dynamic Relay (802.11s)", category: "Relay", metric: "-54 dBm • 2.4ms", status: "Online", timestamp: "2m ago" },
+      { id: "NODE-ED-03", name: "Edge Sensor Cluster Mesh Bridge", category: "Edge Node", metric: "-62 dBm • 3.8ms", status: "Online", timestamp: "4m ago" },
+      { id: "NODE-RL-04", name: "Zero-Trust Encrypted P2P Tunnel", category: "Relay", metric: "-48 dBm • 1.8ms", status: "Online", timestamp: "7m ago" }
+    ];
 
     return {
       key: "mesh",
@@ -104,11 +128,74 @@ export function detectDomainProfile(config: DomainAppConfig): DomainProfile {
         data: [420, 680, 1150, 1890, 1640, 2120, 2400]
       },
       tableColumns: ["Node ID", "Node Label & Scope", "Node Role", "Signal & Latency", "Status", "Actions"],
-      defaultEntities: featureEntities
+      defaultEntities: entities,
+      sampleBatchNames: ["Dynamic Peer Bridge Beta", "Edge Compute Accelerator", "Zero-Trust Handshake Unit"],
+      defaultNewMetric: "Active • Sub-2ms SLA",
+      defaultNewStatus: "Online"
     };
   }
 
-  // 2. Healthcare / Hospital / Clinic / Medical / Patient / Triage
+  // 2. Municipal / Civic / Citizen / City / Ward / Grievance / Sanitation / Government
+  if (
+    haystack.includes("muncipal") || // Typo tolerance
+    haystack.includes("municipal") ||
+    haystack.includes("corpoaration") || // Typo tolerance
+    haystack.includes("corporation") ||
+    haystack.includes("civic") ||
+    haystack.includes("citizen") ||
+    haystack.includes("grievance") ||
+    haystack.includes("ward") ||
+    haystack.includes("sanitation") ||
+    haystack.includes("pothole") ||
+    haystack.includes("garbage") ||
+    haystack.includes("public works") ||
+    haystack.includes("urban") ||
+    haystack.includes("municipality") ||
+    haystack.includes("governance") ||
+    haystack.includes("water supply") ||
+    haystack.includes("streetlight") ||
+    haystack.includes("complaint")
+  ) {
+    const featureEntities = buildFeatureEntities("Public Works", "Ward 4 • High Priority", "In Progress");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "CIV-101", name: "Road Resurfacing & Pothole Repair (Main St, Ward 4)", category: "Public Works & Roads", metric: "Ward 4 • High Priority", status: "In Progress", timestamp: "Just now" },
+      { id: "CIV-102", name: "Water Pipeline Leakage & Pressure Drop (Sector 9)", category: "Water Supply & Sewage", metric: "Ward 2 • Urgent Priority", status: "Dispatched", timestamp: "15m ago" },
+      { id: "CIV-103", name: "Streetlight LED Array Blackout (Boulevard 3)", category: "Electrical & Lighting", metric: "Ward 7 • Medium Priority", status: "Resolved", timestamp: "30m ago" },
+      { id: "CIV-104", name: "Solid Waste Clearance & Segregation Bin Overflow", category: "Sanitation & Waste", metric: "Ward 1 • High Priority", status: "In Progress", timestamp: "1h ago" }
+    ];
+
+    return {
+      key: "civic",
+      domainTitle: `${safeName} — Municipal Services & Civic Portal`,
+      domainSubtitle: "Citizen Grievance Redressal, Ward Infrastructure & Public Works",
+      entityNameSingular: "Civic Request",
+      entityNamePlural: "Civic Requests",
+      addButtonLabel: "+ Log Civic Request",
+      addModalTitle: "Log Civic Grievance / Service Request",
+      addNamePlaceholder: "e.g. Ward 4 Pothole Repair & Road Resurfacing",
+      categories: ["Public Works & Roads", "Water Supply & Sewage", "Sanitation & Waste", "Electrical & Lighting", "Civic Permits"],
+      kpis: [
+        { title: "Active Grievances", value: "142 Active", change: "↑ 88% resolved within 48h SLA", positive: true },
+        { title: "Resolution SLA", value: "24.8 Hours", change: "Within target municipal turnaround", positive: true },
+        { title: "Ward Resolution Rate", value: "96.2%", change: "Wards 1-12 operating at peak efficiency", positive: true },
+        { title: "Civic Services Online", value: "18 Portals", change: "100% digital citizen self-service", positive: true }
+      ],
+      chart: {
+        title: "Daily Civic Grievance Inflow & Resolution Velocity",
+        subtitle: "Citizen complaints received vs resolved across municipal wards",
+        label: "Grievances / Day",
+        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        data: [85, 120, 145, 110, 95, 62, 48]
+      },
+      tableColumns: ["Ticket ID", "Grievance Title & Location", "Municipal Dept", "Ward & Priority", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["Pothole Repair at Crossroad 4", "Sewer Line Desilting Request", "Public Park Tree Trimming"],
+      defaultNewMetric: "Ward 3 • High Priority",
+      defaultNewStatus: "In Progress"
+    };
+  }
+
+  // 3. Healthcare / Hospital / Clinic / Medical / Patient / Triage
   if (
     haystack.includes("health") ||
     haystack.includes("clinic") ||
@@ -117,24 +204,16 @@ export function detectDomainProfile(config: DomainAppConfig): DomainProfile {
     haystack.includes("medical") ||
     haystack.includes("doctor") ||
     haystack.includes("triage") ||
-    haystack.includes("ward") ||
-    haystack.includes("care")
+    haystack.includes("inpatient") ||
+    haystack.includes("outpatient")
   ) {
-    const featureEntities: DomainEntity[] = (config.features && config.features.length > 0)
-      ? config.features.slice(0, 4).map((f, i) => ({
-          id: `MED-10${i + 1}`,
-          name: f.name,
-          category: i === 0 ? "Emergency Triage" : i === 1 ? "Inpatient Ward" : "Outpatient Clinic",
-          metric: i === 0 ? "Priority 1 (Critical)" : i === 1 ? "Priority 2 (Urgent)" : "Priority 3 (Stable)",
-          status: "Admitted",
-          timestamp: "Just now"
-        }))
-      : [
-          { id: "MED-101", name: "Sarah Jenkins — Acute Respiratory Monitoring", category: "ICU Ward 3B", metric: "Priority 1 (Critical)", status: "Admitted", timestamp: "Just now" },
-          { id: "MED-102", name: "Marcus Vance — Orthopedic Trauma Post-Op", category: "Surgical Ward 2", metric: "Priority 2 (Urgent)", status: "Admitted", timestamp: "12m ago" },
-          { id: "MED-103", name: "Elena Rostova — Pediatric Cardiology Consult", category: "Pediatrics", metric: "Priority 3 (Stable)", status: "Scheduled", timestamp: "25m ago" },
-          { id: "MED-104", name: "David Chen — Outpatient Physical Therapy", category: "Rehab Center", metric: "Priority 3 (Stable)", status: "Completed", timestamp: "1h ago" }
-        ];
+    const featureEntities = buildFeatureEntities("Ward 3", "Priority 2", "Admitted");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "MED-101", name: "Sarah Jenkins — Acute Respiratory Monitoring", category: "ICU Ward 3B", metric: "Priority 1 (Critical)", status: "Admitted", timestamp: "Just now" },
+      { id: "MED-102", name: "Marcus Vance — Orthopedic Trauma Post-Op", category: "Surgical Ward 2", metric: "Priority 2 (Urgent)", status: "Admitted", timestamp: "12m ago" },
+      { id: "MED-103", name: "Elena Rostova — Pediatric Cardiology Consult", category: "Pediatrics", metric: "Priority 3 (Stable)", status: "Scheduled", timestamp: "25m ago" },
+      { id: "MED-104", name: "David Chen — Outpatient Physical Therapy", category: "Rehab Center", metric: "Priority 3 (Stable)", status: "Completed", timestamp: "1h ago" }
+    ];
 
     return {
       key: "healthcare",
@@ -160,37 +239,28 @@ export function detectDomainProfile(config: DomainAppConfig): DomainProfile {
         data: [14, 38, 52, 44, 61, 32, 28]
       },
       tableColumns: ["Patient ID", "Patient Name & Condition", "Assigned Ward", "Triage Priority", "Status", "Actions"],
-      defaultEntities: featureEntities
+      defaultEntities: entities,
+      sampleBatchNames: ["Patient Consult #84", "Emergency Triage Unit 2", "Inpatient Recovery Unit"],
+      defaultNewMetric: "Priority 2 (Urgent)",
+      defaultNewStatus: "Admitted"
     };
   }
 
-  // 3. E-Commerce / Store / Marketplace / Retail / Inventory
+  // 4. E-Commerce / Store / Marketplace / Retail / Inventory
   if (
-    haystack.includes("shop") ||
-    haystack.includes("commerce") ||
-    haystack.includes("store") ||
-    haystack.includes("cart") ||
-    haystack.includes("order") ||
-    haystack.includes("product") ||
-    haystack.includes("inventory") ||
-    haystack.includes("catalog") ||
-    haystack.includes("retail")
+    /\b(shop|shopping|storefront|retail|cart|checkout|ecommerce|e-commerce|merchandise|pos)\b/i.test(haystack) ||
+    haystack.includes("product catalog") ||
+    haystack.includes("order fulfillment") ||
+    haystack.includes("inventory tracking") ||
+    haystack.includes("online store")
   ) {
-    const featureEntities: DomainEntity[] = (config.features && config.features.length > 0)
-      ? config.features.slice(0, 4).map((f, i) => ({
-          id: `SKU-00${i + 1}`,
-          name: f.name,
-          category: i % 2 === 0 ? "Electronics" : "Accessories",
-          metric: `$${(99 + i * 65).toFixed(2)} • ${35 - i * 7} in stock`,
-          status: "In Stock",
-          timestamp: "Updated"
-        }))
-      : [
-          { id: "SKU-PRO-01", name: "Titanium Wireless ANC Headphones Pro", category: "Audio", metric: "$299.00 • 48 in stock", status: "In Stock", timestamp: "Just now" },
-          { id: "SKU-PRO-02", name: "Ergonomic Lumbar Desk Chair V2", category: "Furniture", metric: "$449.00 • 12 in stock", status: "In Stock", timestamp: "5m ago" },
-          { id: "SKU-PRO-03", name: "Ultra-Fast 140W GaN Charging Dock", category: "Accessories", metric: "$89.00 • 3 in stock", status: "Low Stock", timestamp: "15m ago" },
-          { id: "SKU-PRO-04", name: "4K OLED 144Hz Professional Monitor", category: "Displays", metric: "$799.00 • 24 in stock", status: "In Stock", timestamp: "40m ago" }
-        ];
+    const featureEntities = buildFeatureEntities("Catalog", "$149.00");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "SKU-PRO-01", name: "Titanium Wireless ANC Headphones Pro", category: "Audio", metric: "$299.00 • 48 in stock", status: "In Stock", timestamp: "Just now" },
+      { id: "SKU-PRO-02", name: "Ergonomic Lumbar Desk Chair V2", category: "Furniture", metric: "$449.00 • 12 in stock", status: "In Stock", timestamp: "5m ago" },
+      { id: "SKU-PRO-03", name: "Ultra-Fast 140W GaN Charging Dock", category: "Accessories", metric: "$89.00 • 3 in stock", status: "Low Stock", timestamp: "15m ago" },
+      { id: "SKU-PRO-04", name: "4K OLED 144Hz Professional Monitor", category: "Displays", metric: "$799.00 • 24 in stock", status: "In Stock", timestamp: "40m ago" }
+    ];
 
     return {
       key: "ecommerce",
@@ -216,38 +286,26 @@ export function detectDomainProfile(config: DomainAppConfig): DomainProfile {
         data: [12.4, 18.2, 14.8, 22.5, 31.0, 26.4, 38.9]
       },
       tableColumns: ["SKU ID", "Product Title & Spec", "Category", "Price & Inventory", "Status", "Actions"],
-      defaultEntities: featureEntities
+      defaultEntities: entities,
+      sampleBatchNames: ["Wireless ANC Headset V2", "Mechanical Gaming Keyboard", "USB-C Fast GaN Charger"],
+      defaultNewMetric: "$129.00 • 35 in stock",
+      defaultNewStatus: "In Stock"
     };
   }
 
-  // 4. FinTech / Banking / Payment / Crypto / Invoicing / Ledger
+  // 5. FinTech / Banking / Payment / Crypto / Invoicing / Ledger
   if (
-    haystack.includes("fintech") ||
-    haystack.includes("bank") ||
-    haystack.includes("pay") ||
-    haystack.includes("crypto") ||
-    haystack.includes("invoice") ||
-    haystack.includes("ledger") ||
-    haystack.includes("wallet") ||
-    haystack.includes("trading") ||
-    haystack.includes("money") ||
-    haystack.includes("settlement")
+    /\b(fintech|bank|banking|crypto|cryptocurrency|invoice|invoicing|invoices|ledger|wallet|wallets|payroll|treasury|defi)\b/i.test(haystack) ||
+    haystack.includes("payment rail") ||
+    (haystack.includes("payment") && !haystack.includes("payload"))
   ) {
-    const featureEntities: DomainEntity[] = (config.features && config.features.length > 0)
-      ? config.features.slice(0, 4).map((f, i) => ({
-          id: `TX-10${i + 1}`,
-          name: f.name,
-          category: i % 2 === 0 ? "Instant Settlement" : "ACH Clearing",
-          metric: `$${(12500 * (i + 1)).toLocaleString()}.00`,
-          status: "Settled",
-          timestamp: "Verified"
-        }))
-      : [
-          { id: "TX-FED-101", name: "Acme Corp — Automated Payroll Settlement", category: "FedNow Rail", metric: "$342,500.00", status: "Settled", timestamp: "Just now" },
-          { id: "TX-SEP-102", name: "Globex Europe — Cross-Border Liquidity Transfer", category: "SEPA Instant", metric: "€185,000.00", status: "Settled", timestamp: "3m ago" },
-          { id: "TX-SWF-103", name: "Stripe Connect — Merchant Escrow Sweep", category: "Escrow Rail", metric: "$94,220.00", status: "Processing", timestamp: "8m ago" },
-          { id: "TX-INT-104", name: "Vanguard Partners — Capital Call Clearing", category: "Wire Rail", metric: "$510,000.00", status: "Settled", timestamp: "15m ago" }
-        ];
+    const featureEntities = buildFeatureEntities("FedNow", "$15,000", "Settled");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "TX-FED-101", name: "Acme Corp — Automated Payroll Settlement", category: "FedNow Rail", metric: "$342,500.00", status: "Settled", timestamp: "Just now" },
+      { id: "TX-SEP-102", name: "Globex Europe — Cross-Border Liquidity Transfer", category: "SEPA Instant", metric: "€185,000.00", status: "Settled", timestamp: "3m ago" },
+      { id: "TX-SWF-103", name: "Stripe Connect — Merchant Escrow Sweep", category: "Escrow Rail", metric: "$94,220.00", status: "Processing", timestamp: "8m ago" },
+      { id: "TX-INT-104", name: "Vanguard Partners — Capital Call Clearing", category: "Wire Rail", metric: "$510,000.00", status: "Settled", timestamp: "15m ago" }
+    ];
 
     return {
       key: "fintech",
@@ -273,35 +331,26 @@ export function detectDomainProfile(config: DomainAppConfig): DomainProfile {
         data: [180, 240, 620, 1140, 950, 1480, 1820]
       },
       tableColumns: ["Transfer ID", "Counterparty & Memo", "Payment Rail", "Settled Amount", "Status", "Actions"],
-      defaultEntities: featureEntities
+      defaultEntities: entities,
+      sampleBatchNames: ["Cross-Border Treasury Swap", "Escrow Smart Contract Release", "Instant Payroll Sweep"],
+      defaultNewMetric: "$24,500.00",
+      defaultNewStatus: "Settled"
     };
   }
 
-  // 5. Tasks / Sprint / Agile / Project / Kanban / Jira
+  // 6. Tasks / Sprint / Agile / Project / Kanban / Jira
   if (
-    haystack.includes("task") ||
-    haystack.includes("sprint") ||
-    haystack.includes("agile") ||
-    haystack.includes("kanban") ||
-    haystack.includes("jira") ||
-    haystack.includes("workflow") ||
-    haystack.includes("project")
+    /\b(kanban|jira|sprint|sprints|scrum|agile|backlog|todos?|taskboard|task board)\b/i.test(haystack) ||
+    haystack.includes("task management") ||
+    haystack.includes("sprint planning")
   ) {
-    const featureEntities: DomainEntity[] = (config.features && config.features.length > 0)
-      ? config.features.slice(0, 4).map((f, i) => ({
-          id: `TSK-0${i + 1}`,
-          name: f.name,
-          category: i === 0 ? "Backend Core" : i === 1 ? "Frontend UI" : "DevOps Infra",
-          metric: `${5 + i * 3} pts • ${f.priority} Priority`,
-          status: i === 0 ? "In Progress" : i === 1 ? "In Review" : "Done",
-          timestamp: "Assigned"
-        }))
-      : [
-          { id: "TSK-SPR-01", name: "Implement OAuth2 PKCE Token Refresh Flow", category: "Auth Squad", metric: "8 pts • High", status: "In Progress", timestamp: "Just now" },
-          { id: "TSK-SPR-02", name: "Optimize PostgreSQL Composite Indexing", category: "DB Infra", metric: "5 pts • High", status: "In Review", timestamp: "10m ago" },
-          { id: "TSK-SPR-03", name: "Build Interactive Drag-and-Drop Kanban View", category: "Frontend", metric: "13 pts • Medium", status: "In Progress", timestamp: "25m ago" },
-          { id: "TSK-SPR-04", name: "Configure Container Ingress Rate Limiting", category: "DevOps", metric: "3 pts • Low", status: "Done", timestamp: "1h ago" }
-        ];
+    const featureEntities = buildFeatureEntities("Sprint Backlog", "8 pts");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "TSK-SPR-01", name: "Implement OAuth2 PKCE Token Refresh Flow", category: "Auth Squad", metric: "8 pts • High", status: "In Progress", timestamp: "Just now" },
+      { id: "TSK-SPR-02", name: "Optimize PostgreSQL Composite Indexing", category: "DB Infra", metric: "5 pts • High", status: "In Review", timestamp: "10m ago" },
+      { id: "TSK-SPR-03", name: "Build Interactive Drag-and-Drop Kanban View", category: "Frontend", metric: "13 pts • Medium", status: "In Progress", timestamp: "25m ago" },
+      { id: "TSK-SPR-04", name: "Configure Container Ingress Rate Limiting", category: "DevOps", metric: "3 pts • Low", status: "Done", timestamp: "1h ago" }
+    ];
 
     return {
       key: "project",
@@ -327,118 +376,558 @@ export function detectDomainProfile(config: DomainAppConfig): DomainProfile {
         data: [60, 52, 41, 30, 22, 11, 4]
       },
       tableColumns: ["Task ID", "Story Title & Deliverable", "Assigned Squad", "Points & Priority", "Status", "Actions"],
-      defaultEntities: featureEntities
+      defaultEntities: entities,
+      sampleBatchNames: ["Implement API Rate Limiter", "Refactor JWT Validation Layer", "Setup Redis Cache Cluster"],
+      defaultNewMetric: "5 pts • Medium",
+      defaultNewStatus: "In Progress"
     };
   }
 
-  // 6. Cybersecurity / Auth / Identity / Zero-Trust
+  // 7. Fitness / Gym / Workout / Exercise / Sports / Training
   if (
-    haystack.includes("security") ||
+    /\b(fitness|gym|workout|workouts|exercise|exercises|crossfit|bodybuilding|powerlifting|calisthenics)\b/i.test(haystack) ||
+    haystack.includes("strength training") ||
+    haystack.includes("personal record") ||
+    haystack.includes("workout tracker")
+  ) {
+    const featureEntities = buildFeatureEntities("Strength", "3 sets • 10 reps");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "EX-101", name: "Barbell Bench Press (Chest Power)", category: "Chest & Triceps", metric: "225 lbs • 4 sets x 8 reps", status: "Completed", timestamp: "Just now" },
+      { id: "EX-102", name: "Barbell Back Squat (Leg Hypertrophy)", category: "Legs & Core", metric: "315 lbs • 5 sets x 5 reps", status: "Completed", timestamp: "15m ago" },
+      { id: "EX-103", name: "Weighted Pull-Ups (Lat Width)", category: "Back & Biceps", metric: "+45 lbs • 4 sets x 8 reps", status: "Active", timestamp: "30m ago" },
+      { id: "EX-104", name: "Dumbbell Overhead Shoulder Press", category: "Shoulders", metric: "75 lbs • 3 sets x 10 reps", status: "Scheduled", timestamp: "1h ago" }
+    ];
+
+    return {
+      key: "fitness",
+      domainTitle: `${safeName} — Workout & Training Tracker`,
+      domainSubtitle: "Real-time Exercise Sets, Strength PRs & Workout Volume",
+      entityNameSingular: "Exercise",
+      entityNamePlural: "Exercises",
+      addButtonLabel: "+ Log Exercise",
+      addModalTitle: "Log Workout Exercise & Sets",
+      addNamePlaceholder: "e.g. Incline Dumbbell Press",
+      categories: ["Chest & Triceps", "Back & Biceps", "Legs & Core", "Shoulders"],
+      kpis: [
+        { title: "Total Volume", value: "18,420 lbs", change: "↑ +8.4% vs last session", positive: true },
+        { title: "Sets Completed", value: "24 Sets", change: "Target 26 sets per workout", positive: true },
+        { title: "Heavy Squat PR", value: "315 lbs", change: "All-time personal record", positive: true },
+        { title: "Weekly Consistency", value: "5 / 5 Days", change: "100% adherence to split", positive: true }
+      ],
+      chart: {
+        title: "Daily Workout Volume & Reps Completed",
+        subtitle: "Tonnage lifted across weekly training split",
+        label: "Volume (k lbs)",
+        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        data: [14.2, 18.4, 0, 16.5, 21.0, 12.8, 0]
+      },
+      tableColumns: ["Exercise ID", "Movement Title & Target", "Muscle Group", "Load & Volume", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["Incline Dumbbell Press", "Romanian Deadlift", "Overhead Military Press"],
+      defaultNewMetric: "185 lbs • 3 sets x 10 reps",
+      defaultNewStatus: "Completed"
+    };
+  }
+
+  // 8. Flight / Aviation / Airport / Travel / Radar
+  if (
+    /\b(flights?|aviation|airports?|airspace|airlines?|aircraft|airplane|radar)\b/i.test(haystack) ||
+    haystack.includes("flight tracking")
+  ) {
+    const featureEntities = buildFeatureEntities("Commercial", "FL360 • 480 kts");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "FL-UA-882", name: "United Airlines (SFO ➔ HND Tokyo)", category: "International", metric: "FL380 • 510 kts • On Time", status: "En Route", timestamp: "Just now" },
+      { id: "FL-DL-412", name: "Delta Air Lines (JFK ➔ LHR London)", category: "International", metric: "FL360 • 495 kts • On Time", status: "En Route", timestamp: "10m ago" },
+      { id: "FL-AA-109", name: "American Airlines (LAX ➔ ORD Chicago)", category: "Domestic", metric: "FL320 • 470 kts • Cruising", status: "En Route", timestamp: "25m ago" },
+      { id: "FL-FX-201", name: "FedEx Express Cargo (MEM ➔ FRA)", category: "Cargo", metric: "FL390 • 520 kts • Final Approach", status: "Descending", timestamp: "45m ago" }
+    ];
+
+    return {
+      key: "flight",
+      domainTitle: `${safeName} — Live Flight Radar & Airspace Controller`,
+      domainSubtitle: "Real-time Transponder Tracking, Flight Routes & Airport Radars",
+      entityNameSingular: "Flight",
+      entityNamePlural: "Flights",
+      addButtonLabel: "+ Track Flight",
+      addModalTitle: "Add Flight to Radar Tracking",
+      addNamePlaceholder: "e.g. Flight BA-178 (JFK to LHR)",
+      categories: ["International", "Domestic", "Cargo", "Private Jet"],
+      kpis: [
+        { title: "Airborne Flights", value: "1,420 Active", change: "↑ Peak congestion handled", positive: true },
+        { title: "Avg Ground Speed", value: "505 kts", change: "Favorable jetstream tailwinds", positive: true },
+        { title: "On-Time Dispatch", value: "96.4%", change: "Zero tarmac delays logged", positive: true },
+        { title: "Active Terminals", value: "18 Gates Open", change: "All ground radars active", positive: true }
+      ],
+      chart: {
+        title: "Hourly Airspace Inbound / Outbound Traffic",
+        subtitle: "Transponder ping frequency and airspace density",
+        label: "Flights / Hour",
+        labels: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "Now"],
+        data: [120, 240, 680, 1140, 950, 1380, 1420]
+      },
+      tableColumns: ["Flight ID", "Carrier & Route Specification", "Flight Category", "Altitude & Airspeed", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["Flight BA-117 (Airbus A350)", "Flight LH-450 (Boeing 747)", "Flight SQ-22 (Airbus A350-ULR)"],
+      defaultNewMetric: "FL350 • 490 kts",
+      defaultNewStatus: "En Route"
+    };
+  }
+
+  // 9. Food / Recipe / Restaurant / Cooking / Menu / Meal
+  if (
+    /\b(recipes?|restaurants?|culinary|chef|kitchen|dining|dishes?|menu)\b/i.test(haystack) ||
+    haystack.includes("food delivery") ||
+    haystack.includes("cooking")
+  ) {
+    const featureEntities = buildFeatureEntities("Entrees", "25 min prep");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "RCP-101", name: "Spicy Thai Basil Chicken (Pad Krapow)", category: "Entrees", metric: "20 min prep • 580 kcal", status: "Featured", timestamp: "Just now" },
+      { id: "RCP-102", name: "Truffle & Wild Porcini Mushroom Risotto", category: "Entrees", metric: "35 min prep • 620 kcal", status: "Active", timestamp: "15m ago" },
+      { id: "RCP-103", name: "Artisanal Wood-Fired Margherita Pizza", category: "Artisanal", metric: "15 min bake • 740 kcal", status: "Active", timestamp: "30m ago" },
+      { id: "RCP-104", name: "Matcha Lava Cake with Madagascar Vanilla", category: "Desserts", metric: "25 min bake • 420 kcal", status: "Seasonal", timestamp: "1h ago" }
+    ];
+
+    return {
+      key: "food",
+      domainTitle: `${safeName} — Kitchen Recipes & Menu Orders`,
+      domainSubtitle: "Culinary Catalog, Ingredients Inventory & Table Orders",
+      entityNameSingular: "Recipe",
+      entityNamePlural: "Recipes",
+      addButtonLabel: "+ Add Recipe",
+      addModalTitle: "Add New Culinary Recipe",
+      addNamePlaceholder: "e.g. Garlic Butter Rosemary Ribeye",
+      categories: ["Entrees", "Artisanal", "Desserts", "Beverages"],
+      kpis: [
+        { title: "Cataloged Recipes", value: "84 Dishes", change: "↑ +8 created this week", positive: true },
+        { title: "Avg Prep Time", value: "22 mins", change: "Fast kitchen execution speed", positive: true },
+        { title: "Orders Fulfilled", value: "312 Meals", change: "Peak dinner service handled", positive: true },
+        { title: "Chef Rating", value: "4.92 / 5.0", change: "Based on 1,400 guest reviews", positive: true }
+      ],
+      chart: {
+        title: "Daily Kitchen Orders & Popular Dishes",
+        subtitle: "Order velocity across dining and takeout tickets",
+        label: "Dishes Served",
+        labels: ["11:00", "13:00", "15:00", "17:00", "19:00", "21:00", "Now"],
+        data: [28, 94, 42, 68, 142, 110, 85]
+      },
+      tableColumns: ["Recipe ID", "Dish Title & Flavors", "Menu Section", "Prep Time & Calories", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["Creamy Tuscan Garlic Salmon", "Artisanal Sourdough Baguette", "Matcha Chia Seed Parfait"],
+      defaultNewMetric: "30 min prep • 520 kcal",
+      defaultNewStatus: "Active"
+    };
+  }
+
+  // 10. Real Estate / Property / Housing / Rental / Tenant
+  if (
+    /\b(real estate|realtor|tenant|tenants|leases?|apartments?|condos?)\b/i.test(haystack) ||
+    haystack.includes("property listing") ||
+    haystack.includes("rental property")
+  ) {
+    const featureEntities = buildFeatureEntities("Residential", "$2,800/mo");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "PROP-101", name: "Skyline Luxury Penthouse (Downtown)", category: "Luxury Penthouse", metric: "$4,800/mo • 3 Beds, 3 Baths", status: "Available", timestamp: "Just now" },
+      { id: "PROP-102", name: "Sunset Boulevard Modern Glass Villa", category: "Residential", metric: "$7,200/mo • 4 Beds, 4 Baths", status: "Leased", timestamp: "1h ago" },
+      { id: "PROP-103", name: "Historic Brownstone Garden Townhouse", category: "Townhouse", metric: "$3,400/mo • 2 Beds, 2 Baths", status: "Under Offer", timestamp: "3h ago" },
+      { id: "PROP-104", name: "Downtown Silicon Loft (Studio Tech Hub)", category: "Studio", metric: "$2,200/mo • 1 Bed, 1 Bath", status: "Available", timestamp: "1d ago" }
+    ];
+
+    return {
+      key: "realestate",
+      domainTitle: `${safeName} — Property Listings & Tenant Manager`,
+      domainSubtitle: "Real-time Real Estate Listings, Tenant Leases & Occupancy",
+      entityNameSingular: "Property",
+      entityNamePlural: "Properties",
+      addButtonLabel: "+ Add Listing",
+      addModalTitle: "List New Property",
+      addNamePlaceholder: "e.g. Waterfront Modern Condo 4B",
+      categories: ["Luxury Penthouse", "Residential", "Townhouse", "Studio"],
+      kpis: [
+        { title: "Active Listings", value: "48 Units", change: "↑ 12 newly listed this month", positive: true },
+        { title: "Occupancy Rate", value: "96.4%", change: "Only 2 vacant residential units", positive: true },
+        { title: "Monthly Rent Roll", value: "$142,500", change: "100% on-time lease payments", positive: true },
+        { title: "Tenant Inquiries", value: "34 Active", change: "Average 4 tours per property", positive: true }
+      ],
+      chart: {
+        title: "Monthly Rental Revenue & Portfolio Yield",
+        subtitle: "Gross rental cash flow across properties ($k)",
+        label: "Rent Volume ($k)",
+        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Now"],
+        data: [112, 118, 124, 131, 138, 140, 142.5]
+      },
+      tableColumns: ["Property ID", "Listing Title & Location", "Property Type", "Rent & Floorplan", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["Waterfront Modern Condo 4B", "Suburban Family Oasis with Pool", "Midtown High-Rise Executive Suite"],
+      defaultNewMetric: "$3,200/mo • 2 Beds, 2 Baths",
+      defaultNewStatus: "Available"
+    };
+  }
+
+  // 11. Pet / Animals / Vet / Dog Walking / Pet Care
+  if (
+    /\b(pets?|dogs?|cats?|puppy|puppies|kitten|kittens|veterinary|vet|dog walking|grooming)\b/i.test(haystack) &&
+    !haystack.includes("category") &&
+    !haystack.includes("catalog")
+  ) {
+    const featureEntities = buildFeatureEntities("Dog Walking", "45 min park walk");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "PET-101", name: "Luna (Golden Retriever • 3 yrs)", category: "Dog Walking", metric: "45 min Park Run • Walker Alex", status: "In Progress", timestamp: "Just now" },
+      { id: "PET-102", name: "Milo (French Bulldog • 1 yr)", category: "Vet Health Check", metric: "Vaccination Booster & Dental", status: "Confirmed", timestamp: "20m ago" },
+      { id: "PET-103", name: "Bella (Siamese Cat • 4 yrs)", category: "Pet Grooming", metric: "Full Spa & Coat Conditioning", status: "Completed", timestamp: "1h ago" },
+      { id: "PET-104", name: "Rocky (German Shepherd • 2 yrs)", category: "Agility Training", metric: "Advanced Obedience Session", status: "Confirmed", timestamp: "2h ago" }
+    ];
+
+    return {
+      key: "pet",
+      domainTitle: `${safeName} — Pet Care & Booking Schedule`,
+      domainSubtitle: "Dog Walking Reservations, Veterinary Appointments & Grooming",
+      entityNameSingular: "Pet Booking",
+      entityNamePlural: "Pet Bookings",
+      addButtonLabel: "+ Book Pet Service",
+      addModalTitle: "Create Pet Care Booking",
+      addNamePlaceholder: "e.g. Charlie (Labrador) - 60 min Trail Walk",
+      categories: ["Dog Walking", "Vet Health Check", "Pet Grooming", "Agility Training"],
+      kpis: [
+        { title: "Today's Bookings", value: "38 Appointments", change: "↑ 100% walker coverage", positive: true },
+        { title: "Certified Walkers", value: "14 On Duty", change: "All background verified", positive: true },
+        { title: "Happy Pet Rating", value: "4.98 / 5.0", change: "Based on 840 pet owner reviews", positive: true },
+        { title: "Avg Walk Time", value: "45 mins", change: "GPS route tracking enabled", positive: true }
+      ],
+      chart: {
+        title: "Daily Pet Walks & Veterinary Checkups",
+        subtitle: "Weekly appointments and active dog walking routes",
+        label: "Bookings",
+        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        data: [24, 32, 28, 36, 42, 54, 48]
+      },
+      tableColumns: ["Booking ID", "Pet Name & Breed Spec", "Service Tier", "Session Details & Walker", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["Daisy (Cocker Spaniel • 30m Walk)", "Charlie (Labrador • Park Run)", "Oliver (Tabby • Vet Checkup)"],
+      defaultNewMetric: "45 min Walk • GPS Tracked",
+      defaultNewStatus: "Confirmed"
+    };
+  }
+
+  // 12. Music / Audio / Podcasts / Streaming
+  if (
+    /\b(music|songs?|audio|podcasts?|playlists?|albums?|artists?|discography)\b/i.test(haystack) &&
+    !haystack.includes("tracking") &&
+    !haystack.includes("fast-track")
+  ) {
+    const featureEntities = buildFeatureEntities("Electronic", "3:45 • 320kbps");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "TRK-101", name: "Midnight Resonance (Synthwave Pulse)", category: "Electronic", metric: "3:42 • 320 kbps Lossless", status: "Streaming", timestamp: "Just now" },
+      { id: "TRK-102", name: "Neon Horizon Wave (Lo-Fi Chillhop)", category: "Lo-Fi Beats", metric: "2:58 • FLAC Studio Master", status: "Streaming", timestamp: "15m ago" },
+      { id: "TRK-103", name: "Deep Focus Binaural Soundscape", category: "Ambient", metric: "14:20 • 320 kbps High Res", status: "Queued", timestamp: "30m ago" },
+      { id: "TRK-104", name: "Velvet Sun (Indie Acoustic Live Session)", category: "Indie Acoustic", metric: "4:12 • 320 kbps Lossless", status: "Completed", timestamp: "1h ago" }
+    ];
+
+    return {
+      key: "music",
+      domainTitle: `${safeName} — Audio Library & Track Broadcast`,
+      domainSubtitle: "High-Fidelity Audio Streaming, Playlists & Artist Library",
+      entityNameSingular: "Track",
+      entityNamePlural: "Tracks",
+      addButtonLabel: "+ Upload Track",
+      addModalTitle: "Add Track to Broadcast Library",
+      addNamePlaceholder: "e.g. Solar Eclipse (Deep House Remix)",
+      categories: ["Electronic", "Lo-Fi Beats", "Ambient", "Indie Acoustic"],
+      kpis: [
+        { title: "Total Streams", value: "28,400 Plays", change: "↑ +34% listener growth", positive: true },
+        { title: "Live Listeners", value: "3,420 Active", change: "Zero audio buffering lag", positive: true },
+        { title: "Stream Quality", value: "320 kbps", change: "Lossless bit-perfect playback", positive: true },
+        { title: "Curated Playlists", value: "142 Mixes", change: "Auto-synced across clients", positive: true }
+      ],
+      chart: {
+        title: "Hourly Streaming Volume & Active Listeners",
+        subtitle: "Concurrent audio streams across sound channels",
+        label: "Concurrent Streams",
+        labels: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "Now"],
+        data: [820, 450, 1120, 2400, 1980, 3100, 3420]
+      },
+      tableColumns: ["Track ID", "Song Title & Producer", "Genre Section", "Duration & Bitrate", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["Solar Eclipse (Deep House)", "Morning Espresso (Lo-Fi Chill)", "Rainforest Echoes (Ambient 3D)"],
+      defaultNewMetric: "3:30 • 320 kbps",
+      defaultNewStatus: "Streaming"
+    };
+  }
+
+
+  // 13. Education / School / University / Student / Course / LMS / Learning
+  if (
+    haystack.includes("education") ||
+    haystack.includes("school") ||
+    haystack.includes("university") ||
+    haystack.includes("student") ||
+    haystack.includes("course") ||
+    haystack.includes("learning") ||
+    haystack.includes("lms") ||
+    haystack.includes("tutor") ||
+    haystack.includes("quiz") ||
+    haystack.includes("exam") ||
+    haystack.includes("teacher") ||
+    haystack.includes("classroom") ||
+    haystack.includes("academic") ||
+    haystack.includes("curriculum")
+  ) {
+    const featureEntities = buildFeatureEntities("Computer Science", "88% Progress • Grade A", "Active");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "EDU-101", name: "Alex Turner — Advanced Distributed Systems", category: "Computer Science", metric: "88% Progress • Grade A", status: "Active", timestamp: "Just now" },
+      { id: "EDU-102", name: "Samantha Reed — Full-Stack Next.js 15 Architect", category: "Web Engineering", metric: "94% Progress • Grade A+", status: "Completed", timestamp: "20m ago" },
+      { id: "EDU-103", name: "Daniel Kim — Deep Learning & Neural Networks", category: "AI & Machine Learning", metric: "62% Progress • Grade B+", status: "Active", timestamp: "45m ago" },
+      { id: "EDU-104", name: "Maya Patel — Enterprise System Design", category: "Cloud Architecture", metric: "45% Progress • In-Flight", status: "In Review", timestamp: "1h ago" }
+    ];
+
+    return {
+      key: "education",
+      domainTitle: `${safeName} — Academic Curriculum & Student Portal`,
+      domainSubtitle: "Interactive Learning Tracks, Course Enrollments & Progress Mastery",
+      entityNameSingular: "Student Enrollment",
+      entityNamePlural: "Student Enrollments",
+      addButtonLabel: "+ Enroll Student",
+      addModalTitle: "Enroll Student in Academic Course",
+      addNamePlaceholder: "e.g. Liam Foster — Cloud Microservices Track",
+      categories: ["Computer Science", "Web Engineering", "AI & Machine Learning", "Cloud Architecture"],
+      kpis: [
+        { title: "Enrolled Students", value: "2,840 Active", change: "↑ +18% enrollment growth", positive: true },
+        { title: "Course Completion", value: "91.4%", change: "Average 4.2 weeks per track", positive: true },
+        { title: "Active Classrooms", value: "46 Batches", change: "Live interactive sessions", positive: true },
+        { title: "Student Rating", value: "4.94 / 5.0", change: "Based on 3,200 student reviews", positive: true }
+      ],
+      chart: {
+        title: "Weekly Student Engagement & Lesson Completions",
+        subtitle: "Interactive video hours and assignment submissions",
+        label: "Lesson Hours",
+        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        data: [320, 480, 560, 610, 590, 430, 390]
+      },
+      tableColumns: ["Enrollment ID", "Student Name & Course Track", "Academic Dept", "Progress & Grade", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["Liam Foster — Cloud Systems", "Chloe Bennett — UI Design Systems", "Ethan Brooks — Rust Systems"],
+      defaultNewMetric: "75% Progress • Grade B+",
+      defaultNewStatus: "Active"
+    };
+  }
+
+  // 14. Logistics / Fleet / Delivery / Supply Chain / Warehouse / Truck
+  if (
+    haystack.includes("logistic") ||
+    haystack.includes("fleet") ||
+    haystack.includes("truck") ||
+    haystack.includes("delivery") ||
+    haystack.includes("courier") ||
+    haystack.includes("shipment") ||
+    haystack.includes("freight") ||
+    haystack.includes("supply chain") ||
+    haystack.includes("warehouse")
+  ) {
+    const featureEntities = buildFeatureEntities("Express Freight", "ETA 6h • GPS Active", "In Transit");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "LOG-101", name: "High-Tech Server Racks (Austin ➔ Seattle)", category: "Express Freight", metric: "ETA 6h • Route Clear", status: "In Transit", timestamp: "Just now" },
+      { id: "LOG-102", name: "Temperature-Controlled Pharmaceuticals (Chicago ➔ Boston)", category: "Cold Chain", metric: "-4°C Monitored • On Time", status: "In Transit", timestamp: "12m ago" },
+      { id: "LOG-103", name: "Priority E-Commerce Hub Transfer (Atlanta ➔ Miami)", category: "Same-Day Courier", metric: "Out for Final Delivery", status: "Out for Delivery", timestamp: "30m ago" },
+      { id: "LOG-104", name: "Industrial Solar Components (Denver ➔ Phoenix)", category: "Intermodal Rail", metric: "Cleared Sorting Terminal", status: "Dispatched", timestamp: "1h ago" }
+    ];
+
+    return {
+      key: "logistics",
+      domainTitle: `${safeName} — Consignment & Fleet Dispatch`,
+      domainSubtitle: "Real-time Telemetry, Waybill Tracking & Warehouse Dispatches",
+      entityNameSingular: "Shipment",
+      entityNamePlural: "Shipments",
+      addButtonLabel: "+ Create Shipment",
+      addModalTitle: "Register Consignment Shipment",
+      addNamePlaceholder: "e.g. Critical Medical Supplies (JFK to ORD)",
+      categories: ["Express Freight", "Cold Chain", "Same-Day Courier", "Intermodal Rail"],
+      kpis: [
+        { title: "Active Shipments", value: "1,240 In Transit", change: "↑ 99.2% on-time delivery rate", positive: true },
+        { title: "Avg Transit SLA", value: "18.4 Hours", change: "Sub-24h regional delivery SLA", positive: true },
+        { title: "Fleet Utilization", value: "94.8%", change: "184 active vehicles dispatched", positive: true },
+        { title: "Fuel Optimization", value: "8.6 MPG", change: "AI route optimization active", positive: true }
+      ],
+      chart: {
+        title: "Hourly Consignment Dispatches & Hub Velocity",
+        subtitle: "Inbound and outbound parcels processed across sorting hubs",
+        label: "Dispatches / Hour",
+        labels: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "Now"],
+        data: [180, 240, 680, 1220, 1050, 1480, 1620]
+      },
+      tableColumns: ["Waybill ID", "Consignment & Destination", "Transport Mode", "Transit ETA & Telemetry", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["Automotive Parts (Detroit ➔ Dallas)", "Aerospace Avionics (Seattle ➔ LAX)", "Biotech Cryo-Samples (Boston ➔ NYC)"],
+      defaultNewMetric: "ETA 12h • GPS Active",
+      defaultNewStatus: "In Transit"
+    };
+  }
+
+  // 15. Security / Threat / Firewall / Zero-Trust / Cybersecurity
+  if (
     haystack.includes("cyber") ||
-    haystack.includes("auth") ||
-    haystack.includes("identity") ||
     haystack.includes("threat") ||
     haystack.includes("firewall") ||
-    haystack.includes("zero-trust") ||
-    haystack.includes("sentinel")
+    haystack.includes("vulnerability") ||
+    haystack.includes("incident") ||
+    haystack.includes("siem") ||
+    haystack.includes("soc") ||
+    haystack.includes("infosec") ||
+    (haystack.includes("security") && !haystack.includes("social security"))
   ) {
-    const featureEntities: DomainEntity[] = (config.features && config.features.length > 0)
-      ? config.features.slice(0, 4).map((f, i) => ({
-          id: `POL-0${i + 1}`,
-          name: f.name,
-          category: i % 2 === 0 ? "Zero-Trust Device" : "API Access",
-          metric: `Enforcement L${i + 1} • High Risk`,
-          status: "Enforced",
-          timestamp: "Active"
-        }))
-      : [
-          { id: "POL-IAM-01", name: "Strict Device Health & Posture Verification", category: "Zero-Trust", metric: "Enforcement L3 • Critical", status: "Enforced", timestamp: "Just now" },
-          { id: "POL-IAM-02", name: "Privileged Admin JIT Session Auto-Revocation", category: "Access Control", metric: "Enforcement L3 • Critical", status: "Enforced", timestamp: "8m ago" },
-          { id: "POL-IAM-03", name: "WebAuthn FIDO2 Biometric Hardware Challenge", category: "Authentication", metric: "Enforcement L2 • High", status: "Enforced", timestamp: "20m ago" },
-          { id: "POL-IAM-04", name: "Geo-Velocity Anomalous Session Quarantine", category: "Threat Defense", metric: "Enforcement L2 • High", status: "Enforced", timestamp: "45m ago" }
-        ];
+    const featureEntities = buildFeatureEntities("Cloud Perimeter", "High Severity • Blocked", "Neutralized");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "SEC-101", name: "Credential Stuffing & Botnet Surge", category: "Cloud Perimeter", metric: "High Severity • 4,200 req/s Blocked", status: "Neutralized", timestamp: "Just now" },
+      { id: "SEC-102", name: "Anomalous Privilege Escalation Attempt", category: "Zero-Trust Access", metric: "Critical • Session Revoked", status: "Quarantined", timestamp: "8m ago" },
+      { id: "SEC-103", name: "Outdated TLS 1.0 Handshake Probe", category: "Endpoint Threat", metric: "Low Severity • Dropped", status: "Resolved", timestamp: "25m ago" },
+      { id: "SEC-104", name: "Volumetric UDP Flood Amplification", category: "DDoS Mitigation", metric: "High Severity • 48 Gbps Scrubbed", status: "Neutralized", timestamp: "45m ago" }
+    ];
 
     return {
       key: "security",
-      domainTitle: `${safeName} — Zero-Trust Identity & Access Console`,
-      domainSubtitle: "Real-time Policy Enforcement, Access Tokens & Threat Mitigation",
-      entityNameSingular: "Access Policy",
-      entityNamePlural: "Policies",
-      addButtonLabel: "+ Add Policy",
-      addModalTitle: "Define Access Control Policy",
-      addNamePlaceholder: "e.g. Enforce MFA on Production Endpoints",
-      categories: ["Zero-Trust", "Access Control", "Authentication", "Threat Defense"],
+      domainTitle: `${safeName} — Threat Defense & Access Sentinel`,
+      domainSubtitle: "Real-time Threat Interception, Zero-Trust Auditing & SIEM Telemetry",
+      entityNameSingular: "Security Alert",
+      entityNamePlural: "Security Alerts",
+      addButtonLabel: "+ Log Threat Policy",
+      addModalTitle: "Register Security Threat Policy",
+      addNamePlaceholder: "e.g. Block ASN 48291 Subnet Anomalies",
+      categories: ["Cloud Perimeter", "Zero-Trust Access", "Endpoint Threat", "DDoS Mitigation"],
       kpis: [
-        { title: "Active Identities", value: "8,450 Verified", change: "Zero orphan accounts detected", positive: true },
-        { title: "Hardware MFA", value: "100.0%", change: "Strict FIDO2 hardware requirement", positive: true },
-        { title: "Threats Blocked", value: "38 Anomalies", change: "Automated quarantine triggered", positive: true },
-        { title: "Compliance Audit", value: "SOC 2 Type II", change: "Continuous automated attestation", positive: true }
+        { title: "Intercepted Threats", value: "42,890 Blocked", change: "↑ 100% automated quarantine", positive: true },
+        { title: "Mean Detection Time", value: "1.2 sec", change: "Real-time eBPF kernel inspection", positive: true },
+        { title: "Active Policies", value: "184 Enforced", change: "Zero-trust identity verification", positive: true },
+        { title: "Compliance Score", value: "99.98%", change: "SOC2 & ISO 27001 verified", positive: true }
       ],
       chart: {
-        title: "Authentication Traffic & Threat Interception",
-        subtitle: "Verified Identity Handshakes and Blocked Threat Vectors",
-        label: "Verifications / min",
+        title: "Real-Time Threat Interception & Anomaly Velocity",
+        subtitle: "Perimeter attacks neutralized across edge firewalls",
+        label: "Threats / Sec",
         labels: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "Now"],
-        data: [320, 480, 1150, 2400, 1980, 2850, 3100]
+        data: [120, 180, 490, 850, 720, 960, 1100]
       },
-      tableColumns: ["Policy ID", "Policy Scope & Objective", "Security Tier", "Enforcement & Risk", "Status", "Actions"],
-      defaultEntities: featureEntities
+      tableColumns: ["Incident ID", "Threat Signature & Vector", "Policy Layer", "Severity & Telemetry", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["SQL Injection Web Application Probe", "Unauthorized API Token Replay", "Cross-Site Scripting (XSS) Block"],
+      defaultNewMetric: "Medium Severity • Blocked",
+      defaultNewStatus: "Neutralized"
     };
   }
 
-  // 7. General / Feature-Derived Domain Application (Adaptive)
-  const featureEntities: DomainEntity[] = (config.features && config.features.length > 0)
-    ? config.features.slice(0, 5).map((f, i) => ({
-        id: `MOD-0${i + 1}`,
+  // 16. Hospitality / Hotel / Resort / Room / Lodging
+  if (
+    haystack.includes("hotel") ||
+    haystack.includes("resort") ||
+    haystack.includes("hospitality") ||
+    haystack.includes("room booking") ||
+    haystack.includes("lodging") ||
+    haystack.includes("guest")
+  ) {
+    const featureEntities = buildFeatureEntities("Deluxe Suite", "$340/night • Confirmed", "Confirmed");
+    const entities = featureEntities.length > 0 ? featureEntities : [
+      { id: "HTL-101", name: "Alexander Wright — Ocean Panorama Villa", category: "Ocean Villa", metric: "$620/night • 4 Nights", status: "Checked In", timestamp: "Just now" },
+      { id: "HTL-102", name: "Sophia Zhang — Executive King Suite", category: "Executive King", metric: "$380/night • 2 Nights", status: "Confirmed", timestamp: "20m ago" },
+      { id: "HTL-103", name: "Marcus Vance — Penthouse Skylight Suite", category: "Penthouse Suite", metric: "$950/night • 5 Nights", status: "Checked In", timestamp: "1h ago" },
+      { id: "HTL-104", name: "Emma Watson — Garden Deluxe King", category: "Deluxe Suite", metric: "$290/night • 3 Nights", status: "Completed", timestamp: "3h ago" }
+    ];
+
+    return {
+      key: "hospitality",
+      domainTitle: `${safeName} — Guest Bookings & Concierge`,
+      domainSubtitle: "Real-time Room Reservations, Guest Check-ins & Amenity Service",
+      entityNameSingular: "Reservation",
+      entityNamePlural: "Reservations",
+      addButtonLabel: "+ New Reservation",
+      addModalTitle: "Book Hotel Room Reservation",
+      addNamePlaceholder: "e.g. Liam Miller — Deluxe Ocean Suite",
+      categories: ["Ocean Villa", "Executive King", "Penthouse Suite", "Deluxe Suite"],
+      kpis: [
+        { title: "Room Occupancy", value: "94.2%", change: "↑ 142 rooms currently occupied", positive: true },
+        { title: "Today's Check-ins", value: "38 Arrivals", change: "Keyless mobile check-in active", positive: true },
+        { title: "Guest Satisfaction", value: "4.96 / 5.0", change: "Based on 2,100 verified reviews", positive: true },
+        { title: "RevPAR Yield", value: "$284.00", change: "Peak seasonal yield optimization", positive: true }
+      ],
+      chart: {
+        title: "Daily Guest Bookings & Room Revenue Velocity",
+        subtitle: "Gross room booking volume across hotel suites",
+        label: "Bookings / Day",
+        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        data: [28, 34, 42, 51, 68, 72, 65]
+      },
+      tableColumns: ["Booking ID", "Guest Name & Suite Category", "Room Class", "Rate & Stay Length", "Status", "Actions"],
+      defaultEntities: entities,
+      sampleBatchNames: ["Charlotte Davis — Executive King", "Oliver Smith — Ocean Villa", "Lucas Martin — Penthouse Suite"],
+      defaultNewMetric: "$320/night • 2 Nights",
+      defaultNewStatus: "Confirmed"
+    };
+  }
+
+  // 17. Smart Universal Semantic Extractor (For ANY custom prompt or novel domain)
+  // Extracts the real entity noun, custom categories, KPIs, and uses the project's actual features!
+  const words = safeName.split(/\s+/).filter(w => 
+    !["app", "platform", "system", "enterprise", "portal", "hub", "flow", "ai", "cloud", "pro", "application", "management", "tool", "dashboard", "service", "software"].includes(w.toLowerCase())
+  );
+  const derivedSubject = words[words.length - 1] || words[0] || (config.category || "Domain Record");
+  const pluralSubject = derivedSubject.toLowerCase().endsWith("s") ? derivedSubject : `${derivedSubject}s`;
+
+  // Use actual features to populate entities with domain realism
+  const featureEntities = (config.features && config.features.length > 0)
+    ? config.features.slice(0, 4).map((f, i) => ({
+        id: `${derivedSubject.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "ITM"}-0${i + 1}`,
         name: f.name,
-        category: f.priority ? `${f.priority} Priority` : "Core Module",
+        category: f.priority ? `${f.priority} Priority` : "Core Workflow",
         metric: f.description.slice(0, 45) + (f.description.length > 45 ? "..." : ""),
-        status: "Operational",
-        timestamp: "Active"
+        status: "Active",
+        timestamp: i === 0 ? "Just now" : `${(i + 1) * 8}m ago`
       }))
     : [
-        { id: "MOD-01", name: "Core Business Engine", category: "Core Module", metric: "Main operational orchestrator", status: "Operational", timestamp: "Just now" },
-        { id: "MOD-02", name: "Data Synchronization Layer", category: "Core Module", metric: "Real-time state consistency", status: "Operational", timestamp: "5m ago" },
-        { id: "MOD-03", name: "Client Interactive Interface", category: "UI Layer", metric: "Reactive components & controls", status: "Operational", timestamp: "12m ago" },
-        { id: "MOD-04", name: "Audit Trail & Verification", category: "Security", metric: "Compliance logging & validation", status: "Operational", timestamp: "20m ago" }
+        { id: "REC-01", name: `${derivedSubject} Primary Operational Unit`, category: "Core Operations", metric: "Operational • Sub-2ms Latency", status: "Active", timestamp: "Just now" },
+        { id: "REC-02", name: `${derivedSubject} Real-Time Ingestion Channel`, category: "Processing", metric: "Active • 99.9% Uptime", status: "Active", timestamp: "5m ago" },
+        { id: "REC-03", name: `${derivedSubject} Reactive Client Controller`, category: "UI & Event Layer", metric: "Interactive • Zero Lag", status: "Active", timestamp: "12m ago" },
+        { id: "REC-04", name: `${derivedSubject} Verification & Audit Engine`, category: "Security & State", metric: "Integrity Verified", status: "Active", timestamp: "25m ago" }
       ];
 
-  const primaryCategory = config.category || "Business Platform";
+  const derivedCategories = config.features && config.features.length >= 3
+    ? Array.from(new Set(config.features.map(f => f.priority ? `${f.priority} Tier` : "Core Operations"))).concat(["Analytics", "Workflow"]).slice(0, 4)
+    : ["Core Operations", "Processing", "UI & Event Layer", "Security & State"];
 
   return {
-    key: "general",
-    domainTitle: `${safeName} — Operational Application Hub`,
-    domainSubtitle: `Live End-User Interface synthesized for ${primaryCategory}`,
-    entityNameSingular: "Feature Module",
-    entityNamePlural: "Modules",
-    addButtonLabel: "+ Add Module",
-    addModalTitle: "Add New Application Module",
-    addNamePlaceholder: "e.g. Enterprise Reporting Engine",
-    categories: ["Core Module", "UI Layer", "Data Sync", "Security"],
+    key: "adaptive",
+    domainTitle: `${safeName} — Live Operational Hub`,
+    domainSubtitle: `Real-time Interactive Application synthesized for "${config.summary || safeName}"`,
+    entityNameSingular: derivedSubject,
+    entityNamePlural: pluralSubject,
+    addButtonLabel: `+ Add ${derivedSubject}`,
+    addModalTitle: `Create / Register ${derivedSubject}`,
+    addNamePlaceholder: `e.g. New ${derivedSubject} Entry`,
+    categories: derivedCategories,
     kpis: [
-      { title: "Active Modules", value: `${featureEntities.length} Online`, change: "↑ 100% feature coverage", positive: true },
-      { title: "Operational SLA", value: "99.98%", change: "Sub-millisecond reactivity", positive: true },
-      { title: "Active Workflows", value: "48 Workflows", change: "High-concurrency processing", positive: true },
-      { title: "Security Grade", value: "Enterprise", change: "Zero vulnerabilities found", positive: true }
+      { title: `Active ${pluralSubject}`, value: `${featureEntities.length} Online`, change: "↑ 100% operational readiness", positive: true },
+      { title: "Execution SLA", value: "99.98%", change: "Sub-millisecond reactivity", positive: true },
+      { title: "Processing Velocity", value: "12.4 ms", change: "Zero runtime bottlenecks", positive: true },
+      { title: "System Reliability", value: "99.9%", change: "All services verified green", positive: true }
     ],
     chart: {
-      title: `${safeName} Operational Activity Trend`,
-      subtitle: "Live End-User Workflow Execution Rate",
-      label: "Workflows / Hour",
+      title: `${safeName} Activity & Operations Trend`,
+      subtitle: `Real-time activity distribution across ${pluralSubject.toLowerCase()} workflows`,
+      label: "Operations / Hour",
       labels: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "Now"],
-      data: [120, 240, 580, 920, 840, 1150, 1340]
+      data: [140, 280, 620, 1140, 980, 1450, 1680]
     },
-    tableColumns: ["Module ID", "Module Title & Scope", "Category Tier", "Specification Details", "Status", "Actions"],
-    defaultEntities: featureEntities
+    tableColumns: ["Record ID", `${derivedSubject} Name & Specification`, "Category", "Operational Metric", "Status", "Actions"],
+    defaultEntities: featureEntities,
+    sampleBatchNames: [`${derivedSubject} Unit Alpha`, `${derivedSubject} Unit Beta`, `${derivedSubject} Unit Gamma`],
+    defaultNewMetric: "Operational • Verified",
+    defaultNewStatus: "Active"
   };
 }
 
 export function generateDomainAppHtml(config: DomainAppConfig): string {
   const profile = detectDomainProfile(config);
-  const safeName = config.projectName || "Enterprise Solution";
   const entitiesJson = JSON.stringify(profile.defaultEntities, null, 2);
   const chartLabelsJson = JSON.stringify(profile.chart.labels);
   const chartDataJson = JSON.stringify(profile.chart.data);
+  const sampleNamesJson = JSON.stringify(profile.sampleBatchNames);
+  const defaultMetric = profile.defaultNewMetric || "Active • Verified SLA";
+  const defaultStatus = profile.defaultNewStatus || "Online";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -625,7 +1114,7 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
           <td class="py-3.5 text-slate-300 font-mono text-[11px]">\${item.metric}</td>
           <td class="py-3.5">
             <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold \${
-              item.status === 'Online' || item.status === 'Admitted' || item.status === 'In Stock' || item.status === 'Settled' || item.status === 'Done' || item.status === 'Operational' || item.status === 'Enforced'
+              item.status === 'Online' || item.status === 'Admitted' || item.status === 'In Stock' || item.status === 'Settled' || item.status === 'Done' || item.status === 'Operational' || item.status === 'Enforced' || item.status === 'Completed' || item.status === 'En Route' || item.status === 'Active' || item.status === 'Available' || item.status === 'Streaming' || item.status === 'Confirmed'
                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                 : item.status === 'Low Stock' || item.status === 'Critical'
                 ? 'bg-red-500/10 text-red-400 border border-red-500/20'
@@ -665,7 +1154,19 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
                              e.status === 'Operational' ? 'Standby' :
                              e.status === 'Admitted' ? 'Under Review' :
                              e.status === 'In Stock' ? 'Low Stock' :
-                             e.status === 'In Progress' ? 'Done' : 'Online';
+                             e.status === 'In Progress' ? 'Done' :
+                             e.status === 'Dispatched' ? 'Resolved' :
+                             e.status === 'Resolved' ? 'In Progress' :
+                             e.status === 'En Route' ? 'Landed' :
+                             e.status === 'In Transit' ? 'Delivered' :
+                             e.status === 'Delivered' ? 'In Transit' :
+                             e.status === 'Neutralized' ? 'Quarantined' :
+                             e.status === 'Quarantined' ? 'Resolved' :
+                             e.status === 'Checked In' ? 'Completed' :
+                             e.status === 'Completed' ? 'Active' :
+                             e.status === 'Available' ? 'Leased' :
+                             e.status === 'Streaming' ? 'Paused' :
+                             e.status === 'Active' ? 'Standby' : 'Active';
           return { ...e, status: nextStatus };
         }
         return e;
@@ -682,8 +1183,8 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
           id: newId,
           name: name.trim(),
           category: "${profile.categories[0]}",
-          metric: "Active • Sub-2ms SLA",
-          status: "Online",
+          metric: "${defaultMetric}",
+          status: "${defaultStatus}",
           timestamp: "Just now"
         });
         renderTable();
@@ -693,19 +1194,15 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
 
     function simulateSampleBatch() {
       const categories = ${JSON.stringify(profile.categories)};
-      const sampleNames = [
-        "Dynamic Peer Bridge Beta",
-        "Edge Compute Accelerator",
-        "Zero-Trust Handshake Unit"
-      ];
+      const sampleNames = ${sampleNamesJson};
       for (let i = 0; i < sampleNames.length; i++) {
         const newId = "${profile.key.toUpperCase().slice(0, 4)}-" + Math.floor(100 + Math.random() * 900);
         entities.unshift({
           id: newId,
           name: sampleNames[i] + " (" + (entities.length + 1) + ")",
           category: categories[i % categories.length],
-          metric: "Healthy • Verified SLA",
-          status: "Online",
+          metric: "${defaultMetric}",
+          status: "${defaultStatus}",
           timestamp: "Just now"
         });
       }
@@ -714,7 +1211,7 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
     }
 
     function pingAll() {
-      showToast("All ${profile.entityNamePlural} pinged & operational");
+      showToast("All ${profile.entityNamePlural} synchronized & active");
     }
 
     // Chart.js Initialization
