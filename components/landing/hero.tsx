@@ -44,9 +44,9 @@ export function Hero({ idea, setIdea, isGenerating, onSubmit, onOpenAiSettings }
                   transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                   className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1]"
                 >
-                  From Idea to{" "}
+                  Autonomous AI Agents{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-primary to-blue-600">
-                    Production Architecture.
+                    Build Your Live App.
                   </span>
                 </motion.h1>
 
@@ -56,7 +56,7 @@ export function Hero({ idea, setIdea, isGenerating, onSubmit, onOpenAiSettings }
                   transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
                   className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed"
                 >
-                  Transform any software idea into a complete architecture, database schema, API design, roadmap, and documentation within seconds.
+                  Turn any idea into a functional, interactive live application. Our autonomous engineering swarm of AI agents (Architect, Builder, QA Auditor, and DevOps) plans, writes code, tests, and deploys within seconds.
                 </motion.p>
               </div>
 
@@ -144,21 +144,21 @@ export function Hero({ idea, setIdea, isGenerating, onSubmit, onOpenAiSettings }
               
               <div className="text-center space-y-4">
                 <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent">
-                  Architecting your solution
+                  Deploying Autonomous Agent Swarm...
                 </h2>
                 <p className="text-lg text-muted-foreground font-light max-w-md mx-auto">
-                  Our AI is currently designing the database schema, selecting the optimal tech stack, and formulating API specifications.
+                  System Architect, Full-Stack Builder, and QA Auditor agents are synthesizing and deploying your live application now.
                 </p>
               </div>
 
               <div className="w-full max-w-md bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md">
                 <div className="space-y-4">
                   {[
-                    { label: "Analyzing core requirements", delay: 0 },
-                    { label: "Designing relational database schema", delay: 2 },
-                    { label: "Formulating REST API specifications", delay: 5 },
-                    { label: "Selecting optimal technology stack", delay: 8 },
-                    { label: "Drafting development roadmap", delay: 11 },
+                    { label: "System Architect Agent analyzing domain specifications", delay: 0 },
+                    { label: "Full-Stack Builder synthesizing live interactive application", delay: 1 },
+                    { label: "Backend Builder structuring REST API & database schema", delay: 2 },
+                    { label: "QA Auditor running test assertions & security verification", delay: 3 },
+                    { label: "DevOps Agent packaging Docker container & deployment runtime", delay: 4 },
                   ].map((step, idx) => (
                     <LoadingStep key={idx} label={step.label} delay={step.delay} />
                   ))}

@@ -12,11 +12,11 @@ interface PromptInputProps {
 }
 
 const PLACEHOLDERS = [
-  "Build an AI-powered Hospital Management System...",
-  "Design a modern Food Delivery Platform...",
-  "Create a Learning Management System for developers...",
-  "Architect a scalable E-Commerce storefront...",
-  "Build a task management application for remote teams..."
+  "Build an AI-powered Hospital Ward & Patient Monitor app...",
+  "Build a Flight Reservation & Seat Booking platform...",
+  "Build a Municipal Corporation & Civic Grievance system...",
+  "Build an E-Commerce Product Catalog & Checkout app...",
+  "Build a Fitness Tracker & Workout Analytics application..."
 ];
 
 export function PromptInput({ idea, setIdea, isGenerating, onSubmit }: PromptInputProps) {
@@ -120,11 +120,11 @@ export function PromptInput({ idea, setIdea, isGenerating, onSubmit }: PromptInp
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    <span>Architecting...</span>
+                    <span>Deploying Swarm...</span>
                   </>
                 ) : (
                   <>
-                    <span>Generate</span>
+                    <span>Build App with AI Swarm</span>
                     <Sparkles className="w-4 h-4 ml-2" />
                   </>
                 )}

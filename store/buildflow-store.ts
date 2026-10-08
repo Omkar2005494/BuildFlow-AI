@@ -14,10 +14,10 @@ export const useBuildFlowStore = create<BuildFlowState>()(
   persist(
     (set) => ({
       buildFlow: null,
-      selectedSection: 'overview',
-      setBuildFlow: (buildFlow) => set({ buildFlow, selectedSection: 'overview' }),
+      selectedSection: 'ai-team',
+      setBuildFlow: (buildFlow) => set({ buildFlow, selectedSection: 'ai-team' }),
       setSelectedSection: (section) => set({ selectedSection: section }),
-      clearBuildFlow: () => set({ buildFlow: null, selectedSection: 'overview' }),
+      clearBuildFlow: () => set({ buildFlow: null, selectedSection: 'ai-team' }),
     }),
     {
       name: 'buildflow-storage',

@@ -88,7 +88,9 @@ export function AiTeamCard() {
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
   const [selectedFilePath, setSelectedFilePath] = useState<string>("");
   const [activeAgentFilter, setActiveAgentFilter] = useState<string>("all");
-  const [runtimeMode, setRuntimeMode] = useState<"local-llama" | "cloud-groq">("local-llama");
+  const [runtimeMode, setRuntimeMode] = useState<"local-llama" | "cloud-groq">("cloud-groq");
+  const hasAutoLaunchedRef = React.useRef(false);
+  const prevProjectNameRef = React.useRef(buildFlow?.overview?.projectName);
 
   if (!buildFlow) return null;
 
@@ -289,6 +291,11 @@ CMD ["nginx", "-g", "daemon off;"]`
   // Synchronize liveAppHtml and custom files when overview or features change
   useEffect(() => {
     if (overview?.projectName) {
+      if (prevProjectNameRef.current !== overview.projectName) {
+        prevProjectNameRef.current = overview.projectName;
+        hasAutoLaunchedRef.current = false;
+        setSwarmStage("idle");
+      }
       setCustomFiles(null);
       setLiveAppHtml(
         generateDomainAppHtml({
@@ -369,10 +376,10 @@ CMD ["nginx", "-g", "daemon off;"]`
     setIsRunningSwarm(true);
     setSwarmStage("planning");
 
-    const t1 = setTimeout(() => setSwarmStage("building"), 1500);
-    const t2 = setTimeout(() => setSwarmStage("testing"), 3000);
-    const t3 = setTimeout(() => setSwarmStage("feedback_loop"), 4500);
-    const t4 = setTimeout(() => setSwarmStage("deploying"), 6000);
+    const t1 = setTimeout(() => setSwarmStage("building"), 700);
+    const t2 = setTimeout(() => setSwarmStage("testing"), 1400);
+    const t3 = setTimeout(() => setSwarmStage("feedback_loop"), 2100);
+    const t4 = setTimeout(() => setSwarmStage("deploying"), 2800);
 
     try {
       const res = await fetch("/api/swarm", {
@@ -416,6 +423,14 @@ CMD ["nginx", "-g", "daemon off;"]`
       setSelectedAgentTab("preview");
     }
   };
+
+  // Auto-launch the Autonomous AI Engineering Swarm on initial entry or new project
+  useEffect(() => {
+    if (!hasAutoLaunchedRef.current && swarmStage === "idle" && !isRunningSwarm) {
+      hasAutoLaunchedRef.current = true;
+      handleRunSwarm();
+    }
+  }, [swarmStage, isRunningSwarm]);
 
   const handleResetSwarm = () => {
     setSwarmStage("idle");
@@ -1090,37 +1105,132 @@ CMD ["nginx", "-g", "daemon off;"]`
             exit={{ opacity: 0, y: -10 }}
             className="space-y-4"
           >
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <h3 className="text-sm font-bold text-white">Live Executable Sandbox Application</h3>
+            {/* Live Agent Activity HUD */}
+            <div className={cn(
+              "p-4 rounded-2xl border backdrop-blur-xl transition-all duration-300",
+              isRunningSwarm
+                ? "bg-blue-950/30 border-blue-500/40 shadow-lg shadow-blue-500/10"
+                : "bg-black/40 border-white/10"
+            )}>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                {/* Stage Info */}
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isRunningSwarm ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Autonomous Swarm Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Agents Deployed & Verified
+                      </span>
+                    )}
+
+                    <span className="text-xs text-white/40">●</span>
+                    <span className="text-xs font-medium text-white/80">
+                      {isRunningSwarm ? (
+                        swarmStage === "planning" ? "System Architect Agent compiling ADR-001..." :
+                        swarmStage === "building" ? "Full-Stack Builder synthesizing responsive UI & Express routes..." :
+                        swarmStage === "testing" ? "QA Auditor executing 18 unit tests & security analysis..." :
+                        swarmStage === "feedback_loop" ? "QA Feedback Loop: Self-healing validation patch applied..." :
+                        "DevOps Agent packaging Dockerfile & runtime container..."
+                      ) : (
+                        "Multi-Agent Swarm successfully built this live application."
+                      )}
+                    </span>
+                  </div>
+
+                  {/* 4-Stage Mini Stepper */}
+                  <div className="grid grid-cols-4 gap-2 pt-1 max-w-xl">
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-all",
+                      swarmStage === "planning"
+                        ? "bg-blue-500/20 text-blue-300 border-blue-500/50 ring-1 ring-blue-500/40"
+                        : swarmStage !== "idle"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : "bg-white/[0.02] text-white/40 border-white/5"
+                    )}>
+                      <Workflow className="w-3 h-3 shrink-0" />
+                      <span className="truncate">Architect</span>
+                    </div>
+
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-all",
+                      swarmStage === "building"
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/50 ring-1 ring-amber-500/40"
+                        : ["testing", "feedback_loop", "deploying", "completed"].includes(swarmStage)
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : "bg-white/[0.02] text-white/40 border-white/5"
+                    )}>
+                      <Code2 className="w-3 h-3 shrink-0" />
+                      <span className="truncate">Builder</span>
+                    </div>
+
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-all",
+                      swarmStage === "testing" || swarmStage === "feedback_loop"
+                        ? "bg-red-500/20 text-red-300 border-red-500/50 ring-1 ring-red-500/40"
+                        : ["deploying", "completed"].includes(swarmStage)
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : "bg-white/[0.02] text-white/40 border-white/5"
+                    )}>
+                      <ShieldCheck className="w-3 h-3 shrink-0" />
+                      <span className="truncate">QA Auditor</span>
+                    </div>
+
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-all",
+                      swarmStage === "deploying"
+                        ? "bg-purple-500/20 text-purple-300 border-purple-500/50 ring-1 ring-purple-500/40"
+                        : swarmStage === "completed"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : "bg-white/[0.02] text-white/40 border-white/5"
+                    )}>
+                      <Server className="w-3 h-3 shrink-0" />
+                      <span className="truncate">DevOps</span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-white/50 mt-0.5">
-                  Synthesized by Builder Agent & verified by QA Auditor. 100% interactive in browser.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    const blob = new Blob([liveAppHtml], { type: "text/html" });
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, "_blank");
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white font-medium flex items-center gap-1.5 transition-all"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Open Full Screen
-                </button>
-                <button
-                  onClick={() => {
-                    setLiveAppHtml(prev => prev + " ");
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Reload App
-                </button>
+
+                {/* Direct Action Shortcuts */}
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setSelectedAgentTab("code")}
+                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white/80 hover:text-white font-medium flex items-center gap-1.5 transition-all"
+                  >
+                    <Code2 className="w-3.5 h-3.5 text-amber-400" />
+                    Inspect Code ({displayFiles.length})
+                  </button>
+                  <button
+                    onClick={() => setSelectedAgentTab("comms")}
+                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white/80 hover:text-white font-medium flex items-center gap-1.5 transition-all"
+                  >
+                    <Terminal className="w-3.5 h-3.5 text-blue-400" />
+                    Agent Log ({messages.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([liveAppHtml], { type: "text/html" });
+                      const url = URL.createObjectURL(blob);
+                      window.open(url, "_blank");
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white font-medium flex items-center gap-1.5 transition-all"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Full Screen
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLiveAppHtml(prev => prev + " ");
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reload App
+                  </button>
+                </div>
               </div>
             </div>
 

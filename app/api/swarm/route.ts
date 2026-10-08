@@ -142,7 +142,12 @@ Return valid JSON with:
     // Try selected provider, cascade if unavailable
     const tryOllama = async () => {
       const adapter = new OllamaAdapter();
-      const raw = await adapter.generateJSON(prompt, "llama3.2:3b");
+      const raw = await Promise.race([
+        adapter.generateJSON(prompt, "llama3.2:3b"),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Ollama timeout (2000ms exceeded)")), 2000)
+        )
+      ]);
       return JSON.parse(raw);
     };
 
