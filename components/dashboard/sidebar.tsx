@@ -24,7 +24,6 @@ import {
 import { exportToMarkdown, exportToJson } from "@/services/export.service";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthContext";
 import { saveProject } from "@/services/db.service";
 
 const navItems = [
@@ -42,7 +41,6 @@ const navItems = [
 
 export function Sidebar() {
   const { selectedSection, setSelectedSection, buildFlow } = useBuildFlowStore();
-  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   if (!buildFlow) return null;
@@ -125,7 +123,7 @@ export function Sidebar() {
             variant="default" 
             className="w-full justify-start shadow-sm"
             onClick={async () => {
-              const userId = user ? user.uid : "guest_user";
+              const userId = "guest_user";
               try {
                 const projectId = buildFlow.overview.projectName.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase().substring(0, 20) + "-" + Date.now();
                 const name = buildFlow.overview.projectName.substring(0, 30);

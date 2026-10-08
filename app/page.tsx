@@ -3,8 +3,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBuildFlowStore } from "@/store/buildflow-store";
-import { useAuth } from "@/context/AuthContext";
-import { LoginModal } from "@/components/auth/login-modal";
 import { Navbar } from "@/components/landing/navbar";
 import { Hero } from "@/components/landing/hero";
 import { AiDashboard } from "@/components/workspace/ai-dashboard";
@@ -15,8 +13,6 @@ export default function LandingPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
   const setBuildFlow = useBuildFlowStore((state) => state.setBuildFlow);
-  const { user } = useAuth();
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showAiSettings, setShowAiSettings] = useState(false);
 
   const handleGenerate = async (e?: React.FormEvent) => {
@@ -25,18 +21,12 @@ export default function LandingPage() {
 
     setIsGenerating(true);
     try {
-      let token = "";
-      if (user) {
-        token = await user.getIdToken();
-      }
-
       const { routingStrategy, preferredProviderId, preferredModelId, detailLevel } = useAIPlatformStore.getState();
 
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { 
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ 
           idea, 
@@ -46,8 +36,6 @@ export default function LandingPage() {
           modelId: preferredModelId
         }),
       });
-
-
 
       if (response.status === 429) {
         alert("Rate limit exceeded. Please try again later.");
@@ -80,7 +68,6 @@ export default function LandingPage() {
         onSubmit={handleGenerate} 
         onOpenAiSettings={() => setShowAiSettings(true)}
       />
-      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
       <AiDashboard isOpen={showAiSettings} onClose={() => setShowAiSettings(false)} />
     </main>
   );

@@ -10,15 +10,28 @@ import { GroqAdapter } from "./providers/groq.adapter";
 import { NvidiaAdapter } from "./providers/nvidia.adapter";
 import { OllamaAdapter } from "./providers/ollama.adapter";
 
+function cleanJsonString(raw: string): string {
+  let cleaned = raw.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  }
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+  return cleaned;
+}
+
 export class AIPlatform {
   private adapters: Map<ProviderId, ProviderAdapter> = new Map();
 
   constructor() {
+    this.registerAdapter(new OllamaAdapter());
+    this.registerAdapter(new GroqAdapter());
     this.registerAdapter(new OpenAIAdapter());
     this.registerAdapter(new AnthropicAdapter());
     this.registerAdapter(new GeminiAdapter());
-    this.registerAdapter(new GroqAdapter());
-    this.registerAdapter(new OllamaAdapter());
     // this.registerAdapter(new NvidiaAdapter()); // Disabled to prevent hanging
   }
 
@@ -51,7 +64,7 @@ export class AIPlatform {
     const modelCascade = this.buildRoutingCascade(strategy, preferredProviderId, preferredModelId);
     
     if (modelCascade.length === 0) {
-      throw new Error("No AI providers are currently available. Please check your API keys in the AI Settings.");
+      throw new Error("No AI providers are currently available. Please check that Ollama or your API keys are active.");
     }
 
     const retries = 0;
@@ -72,7 +85,8 @@ export class AIPlatform {
         
         let parsedData: unknown;
         try {
-          parsedData = JSON.parse(rawJsonString);
+          const sanitizedJson = cleanJsonString(rawJsonString);
+          parsedData = JSON.parse(sanitizedJson);
         } catch {
           schemaRepairs++;
           throw new Error("Invalid output format from AI (JSON Parse Error)");
@@ -112,7 +126,7 @@ export class AIPlatform {
   private buildRoutingCascade(strategy: RoutingStrategy, preferredProviderId?: ProviderId, preferredModelId?: string) {
     let cascade = [...MODEL_REGISTRY];
     
-    // Filter out models belonging to providers we don't have API keys for
+    // Filter out models belonging to providers we don't have active adapters for
     cascade = cascade.filter(m => this.adapters.has(m.providerId));
 
     switch (strategy) {
@@ -122,7 +136,6 @@ export class AIPlatform {
         if (requested) {
           cascade = [requested, ...cascade.filter(m => m.id !== preferredModelId)];
         } else if (preferredProviderId) {
-          // If model not found, but provider requested, prioritize provider's best models
           cascade.sort((a, b) => {
             if (a.providerId === preferredProviderId && b.providerId !== preferredProviderId) return -1;
             if (a.providerId !== preferredProviderId && b.providerId === preferredProviderId) return 1;
@@ -150,8 +163,10 @@ export class AIPlatform {
       case "automatic":
       case "balanced":
       default:
-        // Balanced: Good quality, reasonable speed
+        // Prioritize local Llama by default for unlimited generation, then fall back to high quality
         cascade.sort((a, b) => {
+          if (a.providerId === "ollama" && b.providerId !== "ollama") return -1;
+          if (a.providerId !== "ollama" && b.providerId === "ollama") return 1;
           const scoreA = (a.qualityRating * 2) + a.speedRating;
           const scoreB = (b.qualityRating * 2) + b.speedRating;
           return scoreB - scoreA;

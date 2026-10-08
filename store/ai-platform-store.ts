@@ -17,7 +17,9 @@ export const useAIPlatformStore = create<AIPlatformState>()(
   persist(
     (set) => ({
       routingStrategy: "automatic",
-      detailLevel: "enterprise",
+      preferredProviderId: "ollama",
+      preferredModelId: "llama3.2:3b",
+      detailLevel: "standard",
       
       setRoutingStrategy: (strategy) => set({ routingStrategy: strategy }),
       setPreferredModel: (providerId, modelId) => set({ preferredProviderId: providerId, preferredModelId: modelId }),
