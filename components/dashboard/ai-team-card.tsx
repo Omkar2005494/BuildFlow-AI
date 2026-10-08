@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateDomainAppHtml, detectDomainProfile } from "@/lib/ai/domain-app-generator";
+import { exportDeploymentPackage } from "@/services/export.service";
 
 type AgentRole = "planning" | "building" | "testing" | "deployment";
 type SwarmStage = "idle" | "planning" | "building" | "testing" | "feedback_loop" | "deploying" | "completed";
@@ -89,6 +90,7 @@ export function AiTeamCard() {
   const [selectedFilePath, setSelectedFilePath] = useState<string>("");
   const [activeAgentFilter, setActiveAgentFilter] = useState<string>("all");
   const [runtimeMode, setRuntimeMode] = useState<"local-llama" | "cloud-groq">("cloud-groq");
+  const [isExportingPackage, setIsExportingPackage] = useState(false);
   const hasAutoLaunchedRef = React.useRef(false);
   const prevProjectNameRef = React.useRef(buildFlow?.overview?.projectName);
 
@@ -441,6 +443,18 @@ CMD ["nginx", "-g", "daemon off;"]`
     navigator.clipboard.writeText(text);
     setCopiedFile(path);
     setTimeout(() => setCopiedFile(null), 2000);
+  };
+
+  const handleExportPackage = async () => {
+    setIsExportingPackage(true);
+    try {
+      await exportDeploymentPackage(overview.projectName, displayFiles, overview);
+    } catch (err) {
+      console.error("Export deployment package failed:", err);
+      alert("Failed to export deployment package. Please try again.");
+    } finally {
+      setIsExportingPackage(false);
+    }
   };
 
   const activeFile = displayFiles.find(f => f.path === selectedFilePath) || displayFiles[0];
@@ -1060,9 +1074,22 @@ CMD ["nginx", "-g", "daemon off;"]`
                   Engineered by the Deployment & DevOps Agent for single-command orchestration.
                 </p>
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-500 text-white text-xs shadow-md shadow-blue-600/20">
-                <Download className="w-3.5 h-3.5 mr-2" />
-                Export Deployment Package
+              <Button 
+                onClick={handleExportPackage}
+                disabled={isExportingPackage}
+                className="bg-blue-600 hover:bg-blue-500 text-white text-xs shadow-md shadow-blue-600/20 font-semibold"
+              >
+                {isExportingPackage ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                    Generating Package...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5 mr-2" />
+                    Export Deployment Package (.zip)
+                  </>
+                )}
               </Button>
             </div>
 
@@ -1209,6 +1236,23 @@ CMD ["nginx", "-g", "daemon off;"]`
                   >
                     <Terminal className="w-3.5 h-3.5 text-blue-400" />
                     Agent Log ({messages.length})
+                  </button>
+                  <button
+                    onClick={handleExportPackage}
+                    disabled={isExportingPackage}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-emerald-600/20 transition-all disabled:opacity-50"
+                  >
+                    {isExportingPackage ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Packaging...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5" />
+                        Export Package (.zip)
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => {
