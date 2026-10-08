@@ -186,34 +186,80 @@ Return valid JSON with:
       }
     }
 
-    // Determine interactive app code - must be valid, complete, and domain-appropriate (NOT generic telemetry)
-    const rawHtml = parsedResponse?.interactiveAppHtml;
-    const isGenericTelemetry = typeof rawHtml === "string" && (
-      rawHtml.toLowerCase().includes("ingestion ops/sec") ||
-      rawHtml.toLowerCase().includes("system throughput & event telemetry") ||
-      rawHtml.toLowerCase().includes("telemetry pipeline stream")
-    );
+    // --- DEDICATED HTML APP GENERATION (separate AI call, high token budget) ---
+    const htmlSystemPrompt = `You are an expert full-stack developer who writes complete, self-contained, single-file HTML applications.
+You ALWAYS return ONLY raw HTML code — no markdown, no explanation, no code fences.
+Your HTML must:
+- Start with <!DOCTYPE html>
+- Use Tailwind CSS via CDN (https://cdn.tailwindcss.com)
+- Use vanilla JavaScript with full interactivity (CRUD, modals, state management)
+- Have a dark, modern UI (dark background, colored accents)
+- Be fully functional: buttons work, forms submit, data renders in tables/cards
+- Include realistic mock data relevant to the user's exact idea
+- NEVER generate server telemetry, CPU/memory dashboards, or generic ops monitors
+- Build the ACTUAL end-user business application described in the prompt`;
+
+    const htmlUserPrompt = `Build a complete, working, interactive web application for:
+
+"${projectName}" — ${idea}
+
+Features to include:
+${featuresList}
+
+Requirements:
+- Dark themed UI with professional styling
+- Working navigation tabs or sidebar
+- Functional forms that add/update records
+- A data table or card grid showing ${domainProfile.entityNamePlural} with status badges
+- At least 4-6 realistic mock data rows pre-populated
+- Action buttons (View, Edit, Delete) that actually work
+- KPI summary cards at the top showing key metrics
+- Search/filter functionality
+
+Return ONLY the complete HTML file, nothing else.`;
 
     let synthesizedHtml = "";
-    if (
-      rawHtml &&
-      typeof rawHtml === "string" &&
-      rawHtml.length > 350 &&
-      rawHtml.includes("<!DOCTYPE html>") &&
-      rawHtml.includes("<body") &&
-      rawHtml.includes("<script") &&
-      !isGenericTelemetry
-    ) {
-      synthesizedHtml = rawHtml;
-    } else {
-      // High-fidelity domain-aware generator
-      synthesizedHtml = generateDomainAppHtml({
-        projectName,
-        category,
-        summary: idea,
-        features
-      });
+
+    try {
+      const groqAdapter = new GroqAdapter();
+      const generatedHtml = await groqAdapter.generateText(
+        htmlSystemPrompt,
+        htmlUserPrompt,
+        "llama-3.3-70b-versatile",
+        8000
+      );
+
+      // Extract HTML if wrapped in code fences
+      const fenceMatch = generatedHtml.match(/```(?:html)?\s*([\s\S]+?)```/i);
+      const cleanHtml = fenceMatch ? fenceMatch[1].trim() : generatedHtml.trim();
+
+      if (
+        cleanHtml.length > 500 &&
+        (cleanHtml.includes("<!DOCTYPE html>") || cleanHtml.includes("<html")) &&
+        cleanHtml.includes("<body") &&
+        cleanHtml.includes("<script")
+      ) {
+        synthesizedHtml = cleanHtml;
+        console.log("✅ AI-generated HTML app synthesized successfully, length:", cleanHtml.length);
+      } else {
+        throw new Error("Generated HTML failed validation checks");
+      }
+    } catch (htmlErr: any) {
+      console.warn("⚠️ Dedicated HTML generation failed, using domain template fallback:", htmlErr.message);
+      // Check if orchestration JSON returned HTML first
+      const rawHtml = parsedResponse?.interactiveAppHtml;
+      const isGenericTelemetry = typeof rawHtml === "string" && (
+        rawHtml.toLowerCase().includes("ingestion ops/sec") ||
+        rawHtml.toLowerCase().includes("system throughput & event telemetry") ||
+        rawHtml.toLowerCase().includes("telemetry pipeline stream")
+      );
+      if (rawHtml && typeof rawHtml === "string" && rawHtml.length > 350 && rawHtml.includes("<!DOCTYPE html>") && !isGenericTelemetry) {
+        synthesizedHtml = rawHtml;
+      } else {
+        synthesizedHtml = generateDomainAppHtml({ projectName, category, summary: idea, features });
+      }
     }
+
 
     // Run real QA code verification tool
     const qaReport = verifySynthesizedCode(synthesizedHtml, projectName);

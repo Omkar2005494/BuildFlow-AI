@@ -49,4 +49,22 @@ export class GroqAdapter extends BaseProviderAdapter {
 
     return this.extractJSON(content);
   }
+
+  async generateText(systemPrompt: string, userPrompt: string, modelId: string, maxTokens: number = 8000): Promise<string> {
+    if (!this.client) throw new Error("Groq is not configured");
+
+    const completion = await this.client.chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      model: modelId,
+      temperature: 0.4,
+      max_tokens: maxTokens,
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) throw new Error("Empty response from Groq generateText");
+    return content;
+  }
 }
