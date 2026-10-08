@@ -120,8 +120,7 @@ export function Sidebar() {
         <div className="p-4 border-t border-border/50 space-y-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Project</p>
           <Button 
-            variant="default" 
-            className="w-full justify-start shadow-sm"
+            className="w-full justify-start shadow-md bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-blue-600/20"
             onClick={async () => {
               const userId = "guest_user";
               try {

@@ -382,7 +382,7 @@ CMD ["node", "server.js"]`
                   onClick={() => setRuntimeMode("local-llama")}
                   className={cn(
                     "px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1",
-                    runtimeMode === "local-llama" ? "bg-primary text-white shadow-sm" : "text-white/50 hover:text-white"
+                    runtimeMode === "local-llama" ? "bg-blue-600 text-white font-semibold shadow-sm shadow-blue-500/25" : "text-white/60 hover:text-white"
                   )}
                 >
                   <Cpu className="w-3 h-3" />
@@ -392,7 +392,7 @@ CMD ["node", "server.js"]`
                   onClick={() => setRuntimeMode("cloud-groq")}
                   className={cn(
                     "px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1",
-                    runtimeMode === "cloud-groq" ? "bg-primary text-white shadow-sm" : "text-white/50 hover:text-white"
+                    runtimeMode === "cloud-groq" ? "bg-blue-600 text-white font-semibold shadow-sm shadow-blue-500/25" : "text-white/60 hover:text-white"
                   )}
                 >
                   <Zap className="w-3 h-3" />
@@ -405,9 +405,9 @@ CMD ["node", "server.js"]`
               {swarmStage === "idle" || swarmStage === "completed" ? (
                 <Button
                   onClick={handleRunSwarm}
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 border border-blue-500/40"
                 >
-                  <Play className="w-4 h-4 fill-white" />
+                  <Play className="w-4 h-4 fill-white text-white" />
                   {swarmStage === "completed" ? "Re-Run Autonomous Swarm" : "Launch AI Engineering Swarm"}
                 </Button>
               ) : (
@@ -696,7 +696,7 @@ CMD ["node", "server.js"]`
                       className={cn(
                         "px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-colors",
                         activeAgentFilter === filter
-                          ? "bg-primary text-white"
+                          ? "bg-blue-600 text-white shadow-sm font-semibold"
                           : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
                       )}
                     >
@@ -922,7 +922,7 @@ CMD ["node", "server.js"]`
                   Engineered by the Deployment & DevOps Agent for single-command orchestration.
                 </p>
               </div>
-              <Button className="bg-primary hover:bg-primary/90 text-white text-xs">
+              <Button className="bg-blue-600 hover:bg-blue-500 text-white text-xs shadow-md shadow-blue-600/20">
                 <Download className="w-3.5 h-3.5 mr-2" />
                 Export Deployment Package
               </Button>

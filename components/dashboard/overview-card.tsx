@@ -93,7 +93,7 @@ export function OverviewCard() {
         </div>
         <button
           onClick={() => setSelectedSection("ai-team")}
-          className="shrink-0 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-md shadow-primary/20 relative z-10"
+          className="shrink-0 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-md shadow-blue-600/20 relative z-10"
         >
           <span>Open Swarm Workspace</span>
           <ArrowRight className="w-3.5 h-3.5" />
