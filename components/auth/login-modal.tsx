@@ -14,6 +14,37 @@ export function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const getFriendlyErrorMessage = (err: any): string => {
+    const code = err?.code || "";
+    switch (code) {
+      case "auth/invalid-credential":
+        return isSignUp 
+          ? "Invalid credentials for registration. Please check your email and password." 
+          : "Invalid email or password. If you haven't created an account yet, please click 'Sign up' below!";
+      case "auth/user-not-found":
+        return "No account found with this email. Please click 'Sign up' below to create one.";
+      case "auth/wrong-password":
+        return "Incorrect password. Please try again.";
+      case "auth/email-already-in-use":
+        return "An account with this email already exists. Please switch to 'Sign in'.";
+      case "auth/weak-password":
+        return "Password is too weak. Please use at least 6 characters.";
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
+      case "auth/popup-closed-by-user":
+        return "Google sign-in popup was closed before completing.";
+      case "auth/operation-not-allowed":
+        return "Email/Password sign-in is disabled in your Firebase console. Please enable it under Authentication > Sign-in method.";
+      case "auth/too-many-requests":
+        return "Too many failed attempts. Please wait a moment before trying again.";
+      default:
+        if (err?.message?.includes("invalid-credential")) {
+          return "Invalid email or password. If you don't have an account yet, please click 'Sign up' below to register!";
+        }
+        return err?.message || "Failed to authenticate";
+    }
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +60,7 @@ export function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
       }
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to authenticate");
+      setError(getFriendlyErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -40,7 +71,7 @@ export function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
       await signInWithGoogle();
       onClose();
     } catch (err: any) {
-      setError(err.message || "Google sign-in failed");
+      setError(getFriendlyErrorMessage(err));
     }
   };
 
@@ -65,8 +96,17 @@ export function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
-            {error}
+          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex flex-col gap-1.5">
+            <span>{error}</span>
+            {!isSignUp && (
+              <button 
+                type="button" 
+                onClick={() => { setIsSignUp(true); setError(""); }}
+                className="text-left text-xs text-primary font-semibold hover:underline"
+              >
+                ➔ Click here to switch to Sign Up
+              </button>
+            )}
           </div>
         )}
 
