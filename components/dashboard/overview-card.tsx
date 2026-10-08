@@ -81,13 +81,13 @@ export function OverviewCard() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-white">Autonomous AI Engineering Team Available</h3>
+              <h3 className="text-base font-bold text-white">Architecture Ready ➔ Develop Live Application</h3>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                Track 1 Swarm
+                Autonomous AI Swarm
               </span>
             </div>
             <p className="text-xs text-white/60 mt-1 max-w-xl">
-              Dispatch autonomous Planning, Building, QA, and Deployment agents to write code, conduct automated testing, and generate production release bundles.
+              Architecture blueprint established. The Autonomous AI Engineering Swarm (Architect, Builder, QA Auditor, DevOps) synthesizes and runs the live interactive application software.
             </p>
           </div>
         </div>
@@ -95,7 +95,7 @@ export function OverviewCard() {
           onClick={() => setSelectedSection("ai-team")}
           className="shrink-0 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-md shadow-blue-600/20 relative z-10"
         >
-          <span>Open Swarm Workspace</span>
+          <span>Develop Live Application</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </motion.div>

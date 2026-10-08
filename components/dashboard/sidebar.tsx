@@ -27,9 +27,9 @@ import { Button } from "@/components/ui/button";
 import { saveProject } from "@/services/db.service";
 
 const navItems = [
-  { id: "ai-team", label: "Autonomous AI Swarm", icon: Users2, badge: "Live App" },
   { id: "overview", label: "Architecture Overview", icon: LayoutDashboard },
-  { id: "architecture", label: "Architecture", icon: Network },
+  { id: "ai-team", label: "Autonomous AI Swarm", icon: Users2, badge: "Live App" },
+  { id: "architecture", label: "System Architecture", icon: Network },
   { id: "database", label: "Database", icon: Database },
   { id: "api", label: "API Design", icon: Terminal },
   { id: "folder-structure", label: "Folder Structure", icon: FolderTree },

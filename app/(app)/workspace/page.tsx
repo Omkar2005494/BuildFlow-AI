@@ -50,7 +50,7 @@ export default function DashboardPage() {
       case "readme": return <ReadmeCard />;
       case "risks": return <RiskAssessmentCard />;
       case "future": return <FutureScopeCard />;
-      default: return <AiTeamCard />;
+      default: return <OverviewCard />;
     }
   };
 
