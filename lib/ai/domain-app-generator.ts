@@ -929,6 +929,42 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
   const defaultMetric = profile.defaultNewMetric || "Active • Verified SLA";
   const defaultStatus = profile.defaultNewStatus || "Online";
 
+  // Specialized tab labels based on domain
+  const isHealthcare = profile.key === "healthcare";
+  const isEcommerce = profile.key === "ecommerce";
+  const isFlight = profile.key === "flight";
+  const isCivic = profile.key === "civic";
+
+  const tab1Label = isHealthcare ? "📋 Patients & Admissions" :
+                    isEcommerce ? "🛍️ Storefront & Products" :
+                    isFlight ? "✈️ Flights & Schedule" :
+                    isCivic ? "📝 Citizen Grievances" :
+                    `📋 ${profile.entityNamePlural} Operations`;
+
+  const tab2Label = isHealthcare ? "🛏️ Ward & Bed Allocator" :
+                    isEcommerce ? "📦 Order Fulfillment Pipeline" :
+                    isFlight ? "💺 Cabin Seat Selector" :
+                    isCivic ? "🚛 Field Crew Dispatch" :
+                    "🔄 Workflow Kanban";
+
+  const tab3Label = isHealthcare ? "👨‍⚕️ Doctors & Pharmacy" :
+                    isEcommerce ? "🛒 Cart & Quick Checkout" :
+                    isFlight ? "🎫 Passenger Check-In" :
+                    isCivic ? "🏛️ Ward Inspections" :
+                    "⚡ Action Center";
+
+  const tab4Label = isHealthcare ? "📊 Clinical Analytics" :
+                    isEcommerce ? "📊 Sales Analytics" :
+                    isFlight ? "📊 Flight Ops Telemetry" :
+                    isCivic ? "📊 Resolution SLA" :
+                    "📊 Reports & Telemetry";
+
+  const staffRole = isHealthcare ? "Dr. Sarah Chen • Chief Medical Officer" :
+                    isEcommerce ? "Store Administrator • Fulfillment Lead" :
+                    isFlight ? "Flight Dispatcher • Operations Control" :
+                    isCivic ? "Municipal Commissioner • Ward 4" :
+                    "Systems Administrator • Operational Lead";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -941,61 +977,331 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
     body { font-family: 'Inter', sans-serif; background-color: #090A0F; color: #f8fafc; }
     code, pre, .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); rounded: 4px; }
   </style>
 </head>
-<body class="min-h-screen p-4 md:p-8 selection:bg-blue-500/30">
-  <div class="max-w-6xl mx-auto space-y-6">
-    <!-- Header -->
-    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-white/10">
-      <div>
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shadow-lg shadow-blue-500/10 text-lg">
-            ⚡
+<body class="min-h-screen p-3 md:p-6 selection:bg-blue-500/30">
+  <div class="max-w-6xl mx-auto space-y-5">
+    
+    <!-- Top Application Navbar -->
+    <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 p-4 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl shadow-xl">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shadow-lg shadow-blue-500/10 text-lg">
+          ${isHealthcare ? "🏥" : isEcommerce ? "🛒" : isFlight ? "✈️" : isCivic ? "🏛️" : "⚡"}
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold tracking-tight text-white">${profile.domainTitle}</h1>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              ● Live Software
+            </span>
           </div>
-          <div>
-            <h1 class="text-2xl font-bold tracking-tight text-white">${profile.domainTitle}</h1>
-            <p class="text-xs text-slate-400">${profile.domainSubtitle}</p>
-          </div>
+          <p class="text-xs text-slate-400">${profile.domainSubtitle}</p>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          Live Operational App
+
+      <!-- Module Navigation Tabs -->
+      <nav class="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-white/[0.03] border border-white/5 text-xs">
+        <button id="nav-tab1" onclick="switchTab('tab1')" class="px-3 py-1.5 rounded-lg font-medium transition-all bg-blue-600 text-white shadow-sm shadow-blue-500/20">
+          ${tab1Label}
+        </button>
+        <button id="nav-tab2" onclick="switchTab('tab2')" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all">
+          ${tab2Label}
+        </button>
+        <button id="nav-tab3" onclick="switchTab('tab3')" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all">
+          ${tab3Label}
+        </button>
+        <button id="nav-tab4" onclick="switchTab('tab4')" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all">
+          ${tab4Label}
+        </button>
+      </nav>
+
+      <!-- Primary Action & Staff Badge -->
+      <div class="flex items-center gap-3 shrink-0">
+        <span class="text-[11px] text-slate-400 hidden xl:inline-block">
+          ${staffRole}
         </span>
-        <button onclick="triggerNewItemModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/25 transition-all flex items-center gap-1.5">
+        <button onclick="openCreateModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/25 transition-all flex items-center gap-1.5">
           ${profile.addButtonLabel}
         </button>
       </div>
     </header>
 
-    <!-- Top KPI Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
-        <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">${profile.kpis[0].title}</span>
-        <div class="text-2xl font-bold text-white mt-1" id="kpiTotalRecords">${profile.kpis[0].value}</div>
-        <div class="text-[11px] text-emerald-400 mt-1">${profile.kpis[0].change}</div>
-      </div>
-      <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
-        <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">${profile.kpis[1].title}</span>
-        <div class="text-2xl font-bold text-white mt-1">${profile.kpis[1].value}</div>
-        <div class="text-[11px] text-blue-400 mt-1">${profile.kpis[1].change}</div>
-      </div>
-      <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
-        <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">${profile.kpis[2].title}</span>
-        <div class="text-2xl font-bold text-emerald-400 mt-1">${profile.kpis[2].value}</div>
-        <div class="text-[11px] text-slate-400 mt-1">${profile.kpis[2].change}</div>
-      </div>
-      <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
-        <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">${profile.kpis[3].title}</span>
-        <div class="text-2xl font-bold text-indigo-400 mt-1">${profile.kpis[3].value}</div>
-        <div class="text-[11px] text-slate-400 mt-1">${profile.kpis[3].change}</div>
-      </div>
-    </div>
+    <!-- MODULE VIEW 1: Core Operations / Patient Directory -->
+    <main id="view-tab1" class="space-y-4">
+      <!-- Search, Filters, and Quick Operational Counters -->
+      <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2.5 flex-1 w-full md:w-auto">
+          <div class="relative flex-1 md:w-64">
+            <input type="text" id="searchInput" placeholder="Search by name, ID, category..." 
+              oninput="handleSearch(this.value)"
+              class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors" />
+          </div>
+          <select id="categoryFilter" onchange="handleFilter(this.value)"
+            class="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+            <option value="all">All Categories</option>
+            ${profile.categories.map(c => `<option value="${c}">${c}</option>`).join("\n            ")}
+          </select>
+          <span class="text-xs text-slate-400 font-mono" id="resultsCount">Loading records...</span>
+        </div>
 
-    <!-- Chart & Interactive Controls Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 p-6 rounded-2xl bg-white/[0.03] border border-white/10">
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="simulateSampleBatch()" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white font-medium transition-all">
+            + Sample Data
+          </button>
+          <button onclick="pingAll()" class="px-3 py-1.5 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 text-xs text-blue-400 font-medium transition-all">
+            ⚡ Sync All
+          </button>
+        </div>
+      </div>
+
+      <!-- Core Operations Table -->
+      <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 shadow-xl">
+        <div class="overflow-x-auto custom-scroll">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-white/10 text-slate-400 uppercase tracking-wider text-[11px]">
+                <th class="pb-3 font-semibold">${profile.tableColumns[0]}</th>
+                <th class="pb-3 font-semibold">${profile.tableColumns[1]}</th>
+                <th class="pb-3 font-semibold">${profile.tableColumns[2]}</th>
+                <th class="pb-3 font-semibold">${profile.tableColumns[3]}</th>
+                <th class="pb-3 font-semibold">${profile.tableColumns[4]}</th>
+                <th class="pb-3 font-semibold text-right">${profile.tableColumns[5]}</th>
+              </tr>
+            </thead>
+            <tbody id="entityTableBody" class="divide-y divide-white/5">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <!-- MODULE VIEW 2: Resource Allocator / Visual Spatial Grid -->
+    <section id="view-tab2" class="space-y-4 hidden">
+      ${isHealthcare ? `
+      <!-- Visual Ward & Bed Allocator Grid -->
+      <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-4 border-b border-white/10">
+          <div>
+            <h2 class="text-base font-bold text-white">Visual Ward & Bed Allocation Matrix</h2>
+            <p class="text-xs text-slate-400">Real-time bed occupancy across ICU, Trauma, and General Wards. Click any bed to interact.</p>
+          </div>
+          <div class="flex items-center gap-3 text-xs">
+            <span class="inline-flex items-center gap-1.5 text-rose-400"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Occupied ICU</span>
+            <span class="inline-flex items-center gap-1.5 text-amber-400"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Admitted Ward</span>
+            <span class="inline-flex items-center gap-1.5 text-emerald-400"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Bed Available</span>
+          </div>
+        </div>
+
+        <!-- Wards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- ICU Ward -->
+          <div class="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400">Cardiology & Trauma ICU (Floor 3)</h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">3/4 Occupied</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5 pt-1" id="icuBedsGrid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Surgical Ward -->
+          <div class="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">Surgical Ward B (Floor 2)</h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">2/4 Occupied</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5 pt-1" id="surgicalBedsGrid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- General Ward -->
+          <div class="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">General Ward A (Floor 1)</h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">1/4 Occupied</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5 pt-1" id="generalBedsGrid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+      ` : isEcommerce ? `
+      <!-- Order Fulfillment Kanban Pipeline -->
+      <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-6">
+        <div class="flex justify-between items-center pb-4 border-b border-white/10">
+          <div>
+            <h2 class="text-base font-bold text-white">Order Fulfillment & Logistics Kanban</h2>
+            <p class="text-xs text-slate-400">Interactive supply chain queue. Click "Advance" on any order to move to the next stage.</p>
+          </div>
+          <button onclick="simulateOrder()" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium">+ Simulate Order</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="kanbanCols">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+      ` : `
+      <!-- Universal Interactive Workflow Kanban -->
+      <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-6">
+        <div class="flex justify-between items-center pb-4 border-b border-white/10">
+          <div>
+            <h2 class="text-base font-bold text-white">${profile.domainTitle} — Workflow Kanban Pipeline</h2>
+            <p class="text-xs text-slate-400">Advance items through operational phases in real time.</p>
+          </div>
+          <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">● Active Execution</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="universalKanbanCols">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+      `}
+    </section>
+
+    <!-- MODULE VIEW 3: Direct Workflows (Doctors & Pharmacy / Cart & Checkout) -->
+    <section id="view-tab3" class="space-y-4 hidden">
+      ${isHealthcare ? `
+      <!-- Healthcare: Doctors & Pharmacy Dispenser -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Doctors Directory -->
+        <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+          <div class="flex justify-between items-center pb-3 border-b border-white/10">
+            <div>
+              <h2 class="text-sm font-bold text-white">Attending Physicians & Specialists</h2>
+              <p class="text-[11px] text-slate-400">On-call consultants and surgery schedules</p>
+            </div>
+            <span class="text-[11px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">3 On Duty</span>
+          </div>
+
+          <div class="space-y-3">
+            <div class="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-white">Dr. Evelyn Vance, MD</h4>
+                <p class="text-[11px] text-slate-400">Cardiology Specialist • Room 302</p>
+                <span class="text-[10px] text-emerald-400 font-mono">Available for Rounds</span>
+              </div>
+              <button onclick="bookDocConsult('Dr. Evelyn Vance')" class="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs font-medium">Book Consult</button>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-white">Dr. Marcus Lee, FACS</h4>
+                <p class="text-[11px] text-slate-400">Head of Trauma & Emergency • ER-104</p>
+                <span class="text-[10px] text-amber-400 font-mono">In OR Surgery (ETA 40m)</span>
+              </div>
+              <button onclick="bookDocConsult('Dr. Marcus Lee')" class="px-3 py-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 text-xs font-medium">Page Surgeon</button>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-white">Dr. Sophia Chen, MD</h4>
+                <p class="text-[11px] text-slate-400">Internal Medicine & Triage • Clinic-215</p>
+                <span class="text-[10px] text-emerald-400 font-mono">Available for Consultation</span>
+              </div>
+              <button onclick="bookDocConsult('Dr. Sophia Chen')" class="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs font-medium">Book Consult</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pharmacy & Prescription Dispenser -->
+        <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+          <div class="flex justify-between items-center pb-3 border-b border-white/10">
+            <div>
+              <h2 class="text-sm font-bold text-white">Clinical Pharmacy & Rx Dispenser</h2>
+              <p class="text-[11px] text-slate-400">Active ward medications and inventory levels</p>
+            </div>
+            <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Inventory Verified</span>
+          </div>
+
+          <div class="space-y-3">
+            <div class="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-white">Amoxicillin / Clavulanate (500mg)</h4>
+                <p class="text-[11px] text-slate-400">Broad-Spectrum Antibiotic • Oral Tablets</p>
+                <span id="pharmStock1" class="text-[10px] text-emerald-400 font-mono">140 Units in Stock</span>
+              </div>
+              <button onclick="dispenseMed('Amoxicillin', 'pharmStock1')" class="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-medium">Dispense Rx</button>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-white">Normal Saline 0.9% IV (1,000 mL)</h4>
+                <p class="text-[11px] text-slate-400">Intravenous Rehydration • Bag Infusion</p>
+                <span id="pharmStock2" class="text-[10px] text-emerald-400 font-mono">85 Bags in Stock</span>
+              </div>
+              <button onclick="dispenseMed('Normal Saline IV', 'pharmStock2')" class="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-medium">Dispense Rx</button>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-white">Epinephrine Auto-Injector (1mg/mL)</h4>
+                <p class="text-[11px] text-slate-400">Anaphylaxis & Code Blue Emergency Cart</p>
+                <span id="pharmStock3" class="text-[10px] text-amber-400 font-mono">18 Vials in Stock</span>
+              </div>
+              <button onclick="dispenseMed('Epinephrine 1mg', 'pharmStock3')" class="px-3 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-500/30 text-xs font-medium">Dispense Rx</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      ` : `
+      <!-- General Action & Execution Console -->
+      <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+        <h2 class="text-base font-bold text-white">Operational Command & Workflow Triggers</h2>
+        <p class="text-xs text-slate-400">Execute domain workflows and simulate real-time operations.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          <div class="p-4 rounded-xl bg-black/40 border border-white/10 space-y-2">
+            <h4 class="text-xs font-bold text-white">Automated Batch Ingestion</h4>
+            <p class="text-[11px] text-slate-400">Simulate incoming streaming records from edge providers.</p>
+            <button onclick="simulateSampleBatch()" class="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-all">+ Ingest 3 Items</button>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/10 space-y-2">
+            <h4 class="text-xs font-bold text-white">Integrity & Audit Scan</h4>
+            <p class="text-[11px] text-slate-400">Run schema integrity assertions across all records in memory.</p>
+            <button onclick="pingAll()" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-all">Verify All Records</button>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/10 space-y-2">
+            <h4 class="text-xs font-bold text-white">Quick Record Creation</h4>
+            <p class="text-[11px] text-slate-400">Open custom domain form with instant reactive state dispatch.</p>
+            <button onclick="openCreateModal()" class="w-full py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-all">${profile.addButtonLabel}</button>
+          </div>
+        </div>
+      </div>
+      `}
+    </section>
+
+    <!-- MODULE VIEW 4: Analytics, Metrics & Charts -->
+    <section id="view-tab4" class="space-y-5 hidden">
+      <!-- Top KPI Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
+          <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">${profile.kpis[0].title}</span>
+          <div class="text-2xl font-bold text-white mt-1" id="kpiTotalRecords">${profile.kpis[0].value}</div>
+          <div class="text-[11px] text-emerald-400 mt-1">${profile.kpis[0].change}</div>
+        </div>
+        <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
+          <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">${profile.kpis[1].title}</span>
+          <div class="text-2xl font-bold text-white mt-1">${profile.kpis[1].value}</div>
+          <div class="text-[11px] text-blue-400 mt-1">${profile.kpis[1].change}</div>
+        </div>
+        <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
+          <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">${profile.kpis[2].title}</span>
+          <div class="text-2xl font-bold text-emerald-400 mt-1">${profile.kpis[2].value}</div>
+          <div class="text-[11px] text-slate-400 mt-1">${profile.kpis[2].change}</div>
+        </div>
+        <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
+          <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">${profile.kpis[3].title}</span>
+          <div class="text-2xl font-bold text-indigo-400 mt-1">${profile.kpis[3].value}</div>
+          <div class="text-[11px] text-slate-400 mt-1">${profile.kpis[3].change}</div>
+        </div>
+      </div>
+
+      <!-- Chart Card -->
+      <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/10">
         <div class="flex justify-between items-center mb-4">
           <div>
             <h3 class="text-sm font-semibold text-white">${profile.chart.title}</h3>
@@ -1007,60 +1313,75 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
           <canvas id="domainChart"></canvas>
         </div>
       </div>
-      <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
-        <h3 class="text-sm font-semibold text-white">Application Controls</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Search ${profile.entityNamePlural}</label>
-            <input type="text" id="searchInput" placeholder="Filter by ID, name, status..." 
-              oninput="handleSearch(this.value)"
-              class="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors" />
-          </div>
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Filter by Category</label>
-            <select id="categoryFilter" onchange="handleFilter(this.value)"
-              class="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
-              <option value="all">All Categories</option>
-              ${profile.categories.map(c => `<option value="${c}">${c}</option>`).join("\n              ")}
-            </select>
-          </div>
-          <div class="pt-2 space-y-2">
-            <button onclick="simulateSampleBatch()" class="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white font-medium transition-all flex items-center justify-center gap-1.5">
-              ⚡ Ingest Sample ${profile.entityNamePlural} (+3)
-            </button>
-            <button onclick="pingAll()" class="w-full py-2 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 text-xs text-blue-400 font-medium transition-all">
-              ⚡ Sync All Records
-            </button>
-          </div>
+    </section>
+
+  </div>
+
+  <!-- IN-PAGE MODAL: Create New Record -->
+  <div id="createModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[#11131c] border border-white/15 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <h3 class="text-sm font-bold text-white">${profile.addModalTitle}</h3>
+        <button onclick="closeCreateModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Entity Name / Label</label>
+          <input type="text" id="modalInputName" placeholder="${profile.addNamePlaceholder}"
+            class="w-full bg-black/50 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500" />
         </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Category / Department</label>
+          <select id="modalSelectCategory" class="w-full bg-black/50 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            ${profile.categories.map(c => `<option value="${c}">${c}</option>`).join("\n            ")}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Key Operational Metric / Vitals</label>
+          <input type="text" id="modalInputMetric" value="${defaultMetric}"
+            class="w-full bg-black/50 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Initial Status</label>
+          <select id="modalSelectStatus" class="w-full bg-black/50 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            <option value="Online">Online / Active</option>
+            <option value="Admitted">Admitted / In Care</option>
+            <option value="Operational">Operational</option>
+            <option value="In Stock">In Stock</option>
+            <option value="In Progress">In Progress</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
+        <button onclick="closeCreateModal()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-slate-300 font-medium">Cancel</button>
+        <button onclick="submitCreateRecord()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs text-white font-semibold shadow-md shadow-blue-600/30">Save Record</button>
       </div>
     </div>
+  </div>
 
-    <!-- Data Table -->
-    <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/10">
-      <div class="flex justify-between items-center mb-4">
+  <!-- IN-PAGE MODAL: Details & Medical Chart Inspector -->
+  <div id="detailsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[#11131c] border border-white/15 rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
         <div>
-          <h3 class="text-sm font-semibold text-white">Live ${profile.entityNamePlural} Registry</h3>
-          <p class="text-[11px] text-slate-400">Interactive operational records synchronized in memory</p>
+          <span class="text-[10px] font-mono text-blue-400 uppercase tracking-widest" id="detailsSubId">RECORD DETAILS</span>
+          <h3 class="text-base font-bold text-white" id="detailsTitle">Record Details</h3>
         </div>
-        <span class="text-xs text-slate-400 font-mono" id="resultsCount">Loading records...</span>
+        <button onclick="closeDetailsModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
       </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead>
-            <tr class="border-b border-white/10 text-slate-400 uppercase tracking-wider text-[11px]">
-              <th class="pb-3 font-semibold">${profile.tableColumns[0]}</th>
-              <th class="pb-3 font-semibold">${profile.tableColumns[1]}</th>
-              <th class="pb-3 font-semibold">${profile.tableColumns[2]}</th>
-              <th class="pb-3 font-semibold">${profile.tableColumns[3]}</th>
-              <th class="pb-3 font-semibold">${profile.tableColumns[4]}</th>
-              <th class="pb-3 font-semibold text-right">${profile.tableColumns[5]}</th>
-            </tr>
-          </thead>
-          <tbody id="entityTableBody" class="divide-y divide-white/5">
-            <!-- Rendered dynamically -->
-          </tbody>
-        </table>
+
+      <div class="space-y-3" id="detailsBody">
+        <!-- Rendered via JS -->
+      </div>
+
+      <div class="flex justify-between items-center pt-3 border-t border-white/10">
+        <button id="detailsActionBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs text-white font-semibold">Advance Status</button>
+        <button onclick="closeDetailsModal()" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-slate-300 font-medium">Close</button>
       </div>
     </div>
   </div>
@@ -1075,6 +1396,8 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
     let entities = ${entitiesJson};
     let currentFilter = "all";
     let currentSearch = "";
+    let activeTabId = "tab1";
+    let chartInstance = null;
 
     function showToast(msg) {
       const toast = document.getElementById("toast");
@@ -1084,6 +1407,28 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
       setTimeout(() => {
         toast.classList.add("translate-y-20", "opacity-0");
       }, 2500);
+    }
+
+    function switchTab(tabId) {
+      activeTabId = tabId;
+      ["tab1", "tab2", "tab3", "tab4"].forEach(t => {
+        const view = document.getElementById("view-" + t);
+        const nav = document.getElementById("nav-" + t);
+        if (t === tabId) {
+          view.classList.remove("hidden");
+          nav.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-blue-600 text-white shadow-sm shadow-blue-500/20";
+        } else {
+          view.classList.add("hidden");
+          nav.className = "px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all";
+        }
+      });
+
+      if (tabId === "tab2") {
+        renderAllocators();
+      }
+      if (tabId === "tab4" && !chartInstance) {
+        initChart();
+      }
     }
 
     function renderTable() {
@@ -1096,16 +1441,16 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
         return matchesFilter && matchesSearch;
       });
 
-      document.getElementById("resultsCount").innerText = "Showing " + filtered.length + " of " + entities.length;
+      document.getElementById("resultsCount").innerText = "Showing " + filtered.length + " of " + entities.length + " ${profile.entityNamePlural.toLowerCase()}";
       const kpiTotal = document.getElementById("kpiTotalRecords");
       if (kpiTotal) {
-        kpiTotal.innerText = entities.length + " Online";
+        kpiTotal.innerText = entities.length + " Active";
       }
 
       tbody.innerHTML = filtered.map(item => \`
         <tr class="hover:bg-white/[0.02] transition-colors">
           <td class="py-3.5 font-mono text-blue-400 font-medium">\${item.id}</td>
-          <td class="py-3.5 font-medium text-white">\${item.name}</td>
+          <td class="py-3.5 font-medium text-white cursor-pointer hover:underline" onclick="openDetailsModal('\${item.id}')">\${item.name}</td>
           <td class="py-3.5">
             <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-slate-300 border border-white/10">
               \${item.category}
@@ -1114,21 +1459,161 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
           <td class="py-3.5 text-slate-300 font-mono text-[11px]">\${item.metric}</td>
           <td class="py-3.5">
             <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold \${
-              item.status === 'Online' || item.status === 'Admitted' || item.status === 'In Stock' || item.status === 'Settled' || item.status === 'Done' || item.status === 'Operational' || item.status === 'Enforced' || item.status === 'Completed' || item.status === 'En Route' || item.status === 'Active' || item.status === 'Available' || item.status === 'Streaming' || item.status === 'Confirmed'
+              item.status === 'Online' || item.status === 'Admitted' || item.status === 'In Stock' || item.status === 'Settled' || item.status === 'Done' || item.status === 'Operational' || item.status === 'Confirmed'
                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : item.status === 'Low Stock' || item.status === 'Critical'
-                ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                : item.status === 'Critical' || item.status === 'Low Stock'
+                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                 : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
             }">
               ● \${item.status}
             </span>
           </td>
           <td class="py-3.5 text-right space-x-2">
-            <button onclick="toggleStatus('\${item.id}')" class="text-blue-400 hover:text-blue-300 font-medium text-[11px]">Toggle</button>
+            <button onclick="openDetailsModal('\${item.id}')" class="text-blue-400 hover:text-blue-300 font-medium text-[11px]">View Details</button>
+            <button onclick="toggleStatus('\${item.id}')" class="text-emerald-400 hover:text-emerald-300 font-medium text-[11px]">Advance</button>
             <button onclick="removeEntity('\${item.id}')" class="text-rose-400 hover:text-rose-300 font-medium text-[11px]">Remove</button>
           </td>
         </tr>
       \`).join("");
+    }
+
+    function renderAllocators() {
+      // Healthcare Ward Beds
+      const icuGrid = document.getElementById("icuBedsGrid");
+      const surgGrid = document.getElementById("surgicalBedsGrid");
+      const genGrid = document.getElementById("generalBedsGrid");
+
+      if (icuGrid) {
+        const icuBeds = [
+          { id: "ICU-01", patient: entities[0]?.name?.split("—")[0]?.trim() || "Arthur Pendelton", status: "Occupied", vitals: "HR 84 • BP 135/85" },
+          { id: "ICU-02", patient: entities[1]?.name?.split("—")[0]?.trim() || "Evelyn Reed", status: "Occupied", vitals: "HR 76 • BP 120/80" },
+          { id: "ICU-03", patient: "Available Bed", status: "Available", vitals: "Sanitized & Prepared" },
+          { id: "ICU-04", patient: entities[2]?.name?.split("—")[0]?.trim() || "Liam Gallagher", status: "Occupied", vitals: "HR 92 • BP 142/90" },
+        ];
+        icuGrid.innerHTML = icuBeds.map(b => \`
+          <div onclick="clickBed('\${b.id}', '\${b.status}')" class="p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] \${
+            b.status === 'Occupied' ? 'bg-rose-500/10 border-rose-500/30' : 'bg-emerald-500/10 border-emerald-500/30'
+          }">
+            <div class="flex items-center justify-between text-[11px] font-mono">
+              <span class="font-bold text-white">\${b.id}</span>
+              <span class="\${b.status === 'Occupied' ? 'text-rose-400' : 'text-emerald-400'}">● \${b.status}</span>
+            </div>
+            <div class="text-xs font-semibold text-white mt-1 truncate">\${b.patient}</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">\${b.vitals}</div>
+          </div>
+        \`).join("");
+      }
+
+      if (surgGrid) {
+        const surgBeds = [
+          { id: "SW-201", patient: "Marcus Vance", status: "Occupied", vitals: "Post-Op Recovery" },
+          { id: "SW-202", patient: "Available Bed", status: "Available", vitals: "Ready for Admission" },
+          { id: "SW-203", patient: "Clara Oswald", status: "Occupied", vitals: "General Surgical Care" },
+          { id: "SW-204", patient: "Available Bed", status: "Available", vitals: "Ready for Admission" },
+        ];
+        surgGrid.innerHTML = surgBeds.map(b => \`
+          <div onclick="clickBed('\${b.id}', '\${b.status}')" class="p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] \${
+            b.status === 'Occupied' ? 'bg-amber-500/10 border-amber-500/30' : 'bg-emerald-500/10 border-emerald-500/30'
+          }">
+            <div class="flex items-center justify-between text-[11px] font-mono">
+              <span class="font-bold text-white">\${b.id}</span>
+              <span class="\${b.status === 'Occupied' ? 'text-amber-400' : 'text-emerald-400'}">● \${b.status}</span>
+            </div>
+            <div class="text-xs font-semibold text-white mt-1 truncate">\${b.patient}</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">\${b.vitals}</div>
+          </div>
+        \`).join("");
+      }
+
+      if (genGrid) {
+        const genBeds = [
+          { id: "GW-101", patient: "Available Bed", status: "Available", vitals: "Ready" },
+          { id: "GW-102", patient: "Henry Cavill", status: "Occupied", vitals: "Observation Ward" },
+          { id: "GW-103", patient: "Available Bed", status: "Available", vitals: "Ready" },
+          { id: "GW-104", patient: "Available Bed", status: "Available", vitals: "Ready" },
+        ];
+        genGrid.innerHTML = genBeds.map(b => \`
+          <div onclick="clickBed('\${b.id}', '\${b.status}')" class="p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] \${
+            b.status === 'Occupied' ? 'bg-blue-500/10 border-blue-500/30' : 'bg-emerald-500/10 border-emerald-500/30'
+          }">
+            <div class="flex items-center justify-between text-[11px] font-mono">
+              <span class="font-bold text-white">\${b.id}</span>
+              <span class="\${b.status === 'Occupied' ? 'text-blue-400' : 'text-emerald-400'}">● \${b.status}</span>
+            </div>
+            <div class="text-xs font-semibold text-white mt-1 truncate">\${b.patient}</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">\${b.vitals}</div>
+          </div>
+        \`).join("");
+      }
+
+      // Universal Kanban
+      const uKanban = document.getElementById("universalKanbanCols");
+      if (uKanban) {
+        const col1 = entities.filter((_, idx) => idx % 3 === 0);
+        const col2 = entities.filter((_, idx) => idx % 3 === 1);
+        const col3 = entities.filter((_, idx) => idx % 3 === 2);
+
+        uKanban.innerHTML = \`
+          <div class="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Phase 1: Ingestion & Triage (\${col1.length})</h3>
+            <div class="space-y-2">
+              \${col1.map(i => \`
+                <div class="p-3 rounded-lg bg-white/[0.03] border border-white/5 space-y-1">
+                  <div class="text-xs font-semibold text-white">\${i.name}</div>
+                  <div class="text-[10px] font-mono text-blue-400">\${i.id} • \${i.category}</div>
+                  <button onclick="toggleStatus('\${i.id}')" class="mt-1 text-[10px] text-emerald-400 hover:underline">Advance ➔</button>
+                </div>
+              \`).join("")}
+            </div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-blue-400">Phase 2: Active Execution (\${col2.length})</h3>
+            <div class="space-y-2">
+              \${col2.map(i => \`
+                <div class="p-3 rounded-lg bg-white/[0.03] border border-white/5 space-y-1">
+                  <div class="text-xs font-semibold text-white">\${i.name}</div>
+                  <div class="text-[10px] font-mono text-blue-400">\${i.id} • \${i.category}</div>
+                  <button onclick="toggleStatus('\${i.id}')" class="mt-1 text-[10px] text-emerald-400 hover:underline">Advance ➔</button>
+                </div>
+              \`).join("")}
+            </div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">Phase 3: Resolved & Verified (\${col3.length})</h3>
+            <div class="space-y-2">
+              \${col3.map(i => \`
+                <div class="p-3 rounded-lg bg-white/[0.03] border border-white/5 space-y-1">
+                  <div class="text-xs font-semibold text-white">\${i.name}</div>
+                  <div class="text-[10px] font-mono text-blue-400">\${i.id} • \${i.category}</div>
+                  <span class="text-[10px] text-emerald-400">● Complete</span>
+                </div>
+              \`).join("")}
+            </div>
+          </div>
+        \`;
+      }
+    }
+
+    function clickBed(bedId, status) {
+      if (status === "Available") {
+        openCreateModal();
+        document.getElementById("modalInputMetric").value = "Bed " + bedId + " • Admitted Vitals Normal";
+      } else {
+        const found = entities.find(e => e.metric && e.metric.includes(bedId)) || entities[0];
+        if (found) openDetailsModal(found.id);
+      }
+    }
+
+    function bookDocConsult(docName) {
+      showToast("Consultation booked with " + docName + " for active patient");
+    }
+
+    function dispenseMed(medName, stockElementId) {
+      const el = document.getElementById(stockElementId);
+      if (el) {
+        el.innerText = "Dispensed 1 Unit • Stock Updated";
+      }
+      showToast("Dispensed Rx: " + medName);
     }
 
     function handleSearch(val) {
@@ -1144,52 +1629,113 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
     function removeEntity(id) {
       entities = entities.filter(e => e.id !== id);
       renderTable();
-      showToast("Removed " + id);
+      renderAllocators();
+      showToast("Discharged / Removed " + id);
     }
 
     function toggleStatus(id) {
       entities = entities.map(e => {
         if (e.id === id) {
           const nextStatus = e.status === 'Online' ? 'Maintenance' :
-                             e.status === 'Operational' ? 'Standby' :
-                             e.status === 'Admitted' ? 'Under Review' :
+                             e.status === 'Admitted' ? 'Under Treatment' :
+                             e.status === 'Under Treatment' ? 'Recovering' :
+                             e.status === 'Recovering' ? 'Discharged' :
                              e.status === 'In Stock' ? 'Low Stock' :
-                             e.status === 'In Progress' ? 'Done' :
-                             e.status === 'Dispatched' ? 'Resolved' :
-                             e.status === 'Resolved' ? 'In Progress' :
-                             e.status === 'En Route' ? 'Landed' :
-                             e.status === 'In Transit' ? 'Delivered' :
-                             e.status === 'Delivered' ? 'In Transit' :
-                             e.status === 'Neutralized' ? 'Quarantined' :
-                             e.status === 'Quarantined' ? 'Resolved' :
-                             e.status === 'Checked In' ? 'Completed' :
-                             e.status === 'Completed' ? 'Active' :
-                             e.status === 'Available' ? 'Leased' :
-                             e.status === 'Streaming' ? 'Paused' :
-                             e.status === 'Active' ? 'Standby' : 'Active';
+                             e.status === 'Confirmed' ? 'Completed' :
+                             e.status === 'In Progress' ? 'Done' : 'Active';
           return { ...e, status: nextStatus };
         }
         return e;
       });
       renderTable();
+      renderAllocators();
       showToast("Updated status for " + id);
     }
 
-    function triggerNewItemModal() {
-      const name = prompt("${profile.addModalTitle}\\n\\n${profile.addNamePlaceholder}:", "");
-      if (name && name.trim()) {
-        const newId = "${profile.key.toUpperCase().slice(0, 4)}-" + Math.floor(100 + Math.random() * 900);
-        entities.unshift({
-          id: newId,
-          name: name.trim(),
-          category: "${profile.categories[0]}",
-          metric: "${defaultMetric}",
-          status: "${defaultStatus}",
-          timestamp: "Just now"
-        });
-        renderTable();
-        showToast("Created " + newId + ": " + name.trim());
+    // In-page Creation Modal
+    function openCreateModal() {
+      document.getElementById("createModal").classList.remove("hidden");
+    }
+
+    function closeCreateModal() {
+      document.getElementById("createModal").classList.add("hidden");
+    }
+
+    function submitCreateRecord() {
+      const name = document.getElementById("modalInputName").value;
+      const cat = document.getElementById("modalSelectCategory").value;
+      const metric = document.getElementById("modalInputMetric").value;
+      const stat = document.getElementById("modalSelectStatus").value;
+
+      if (!name || !name.trim()) {
+        alert("Please enter a record name / patient label.");
+        return;
       }
+
+      const newId = "${profile.key.toUpperCase().slice(0, 4)}-" + Math.floor(100 + Math.random() * 900);
+      entities.unshift({
+        id: newId,
+        name: name.trim(),
+        category: cat,
+        metric: metric || "${defaultMetric}",
+        status: stat,
+        timestamp: "Just now"
+      });
+
+      closeCreateModal();
+      renderTable();
+      renderAllocators();
+      showToast("Created " + newId + ": " + name.trim());
+    }
+
+    // In-page Details Modal
+    function openDetailsModal(id) {
+      const item = entities.find(e => e.id === id) || entities[0];
+      if (!item) return;
+
+      document.getElementById("detailsSubId").innerText = item.id + " • " + item.category.toUpperCase();
+      document.getElementById("detailsTitle").innerText = item.name;
+
+      const body = document.getElementById("detailsBody");
+      body.innerHTML = \`
+        <div class="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-black/40 border border-white/5 text-xs">
+          <div>
+            <span class="text-slate-400">Current Status:</span>
+            <div class="font-bold text-emerald-400 mt-0.5">● \${item.status}</div>
+          </div>
+          <div>
+            <span class="text-slate-400">Operational Metric:</span>
+            <div class="font-mono text-white mt-0.5">\${item.metric}</div>
+          </div>
+          <div>
+            <span class="text-slate-400">Category / Ward:</span>
+            <div class="text-white mt-0.5">\${item.category}</div>
+          </div>
+          <div>
+            <span class="text-slate-400">Last Verified:</span>
+            <div class="text-slate-300 mt-0.5">\${item.timestamp || 'Active in Memory'}</div>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1.5 text-xs">
+          <h4 class="font-bold text-white text-[11px] uppercase tracking-wider text-slate-400">Clinical & Operational Audit</h4>
+          <p class="text-slate-300 leading-relaxed text-[11px]">
+            Record authenticated under \${item.category}. Zero security or relational constraints violated. Automated state mutations synchronized with local in-memory store.
+          </p>
+        </div>
+      \`;
+
+      const btn = document.getElementById("detailsActionBtn");
+      btn.onclick = () => {
+        toggleStatus(item.id);
+        closeDetailsModal();
+      };
+
+      document.getElementById("detailsModal").classList.remove("hidden");
+    }
+
+    function closeDetailsModal() {
+      document.getElementById("detailsModal").classList.add("hidden");
     }
 
     function simulateSampleBatch() {
@@ -1207,18 +1753,19 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
         });
       }
       renderTable();
-      showToast("Ingested 3 sample ${profile.entityNamePlural}");
+      renderAllocators();
+      showToast("Ingested sample ${profile.entityNamePlural.toLowerCase()}");
     }
 
     function pingAll() {
-      showToast("All ${profile.entityNamePlural} synchronized & active");
+      showToast("All ${profile.entityNamePlural.toLowerCase()} synchronized & active");
     }
 
-    // Chart.js Initialization
-    window.addEventListener("DOMContentLoaded", () => {
-      renderTable();
-      const ctx = document.getElementById("domainChart").getContext("2d");
-      new Chart(ctx, {
+    function initChart() {
+      const chartEl = document.getElementById("domainChart");
+      if (!chartEl) return;
+      const ctx = chartEl.getContext("2d");
+      chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
           labels: ${chartLabelsJson},
@@ -1241,6 +1788,12 @@ export function generateDomainAppHtml(config: DomainAppConfig): string {
           }
         }
       });
+    }
+
+    // App Initialization
+    window.addEventListener("DOMContentLoaded", () => {
+      renderTable();
+      renderAllocators();
     });
   </script>
 </body>
