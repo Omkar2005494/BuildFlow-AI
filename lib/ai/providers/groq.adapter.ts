@@ -23,10 +23,10 @@ export class GroqAdapter extends BaseProviderAdapter {
     return !!env.GROQ_API_KEY;
   }
 
-  async generateJSON(prompt: string, modelId: string): Promise<string> {
+  async generateJSON(prompt: string, modelId: string, maxTokens?: number): Promise<string> {
     if (!this.client) throw new Error("Groq is not configured");
 
-    const completion = await this.client.chat.completions.create({
+    const payload: any = {
       messages: [
         { role: "system", content: "You are an expert AI software architect. You must strictly reply with valid JSON only." },
         { role: "user", content: prompt }
@@ -34,7 +34,15 @@ export class GroqAdapter extends BaseProviderAdapter {
       model: modelId,
       temperature: 0.2,
       response_format: { type: "json_object" }
-    });
+    };
+
+    if (maxTokens) {
+      payload.max_tokens = maxTokens;
+    } else if (modelId.includes("qwen")) {
+      payload.max_tokens = 950;
+    }
+
+    const completion = await this.client.chat.completions.create(payload);
 
     const content = completion.choices[0]?.message?.content;
     if (!content) throw new Error("Empty response from Groq");

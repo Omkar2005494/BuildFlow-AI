@@ -36,6 +36,7 @@ import {
   Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { generateDomainAppHtml } from "@/lib/ai/domain-app-generator";
 
 type AgentRole = "planning" | "building" | "testing" | "deployment";
 type SwarmStage = "idle" | "planning" | "building" | "testing" | "feedback_loop" | "deploying" | "completed";
@@ -59,235 +60,13 @@ interface GeneratedFile {
   code: string;
 }
 
-function generateInitialAppHtml(projectName: string): string {
-  const safeName = projectName || "Enterprise Solution";
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${safeName}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #090A0F; color: #f8fafc; }
-  </style>
-</head>
-<body class="min-h-screen p-4 md:p-8">
-  <div class="max-w-6xl mx-auto space-y-6">
-    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-white/10">
-      <div>
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shadow-lg shadow-blue-500/10">⚡</div>
-          <div>
-            <h1 class="text-2xl font-bold tracking-tight text-white">${safeName}</h1>
-            <p class="text-xs text-slate-400">Synthesized autonomously by Track 1 Multi-Agent Engineering Swarm</p>
-          </div>
-        </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          Live Operational
-        </span>
-        <button onclick="triggerNewItemModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/25 transition-all">
-          + Add Entry
-        </button>
-      </div>
-    </header>
-
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
-        <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Records</span>
-        <div class="text-2xl font-bold text-white mt-1" id="totalRecordsCount">1,428</div>
-        <div class="text-[11px] text-emerald-400 mt-1">↑ +14.2% from last cycle</div>
-      </div>
-      <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
-        <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">Processing SLA</span>
-        <div class="text-2xl font-bold text-white mt-1">18.4 ms</div>
-        <div class="text-[11px] text-blue-400 mt-1">Sub-second local reactivity</div>
-      </div>
-      <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
-        <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">System Health</span>
-        <div class="text-2xl font-bold text-emerald-400 mt-1">99.99%</div>
-        <div class="text-[11px] text-slate-400 mt-1">Zero downtime recorded</div>
-      </div>
-      <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
-        <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">Security Audits</span>
-        <div class="text-2xl font-bold text-purple-400 mt-1">Passed</div>
-        <div class="text-[11px] text-slate-400 mt-1">OWASP Top 10 Verified</div>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 p-6 rounded-2xl bg-white/[0.03] border border-white/10">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-sm font-semibold text-white">System Throughput & Event Telemetry</h3>
-          <span class="text-xs text-slate-400 font-mono">Live In-Memory Aggregation</span>
-        </div>
-        <div class="h-64">
-          <canvas id="telemetryChart"></canvas>
-        </div>
-      </div>
-      <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
-        <h3 class="text-sm font-semibold text-white">Interactive Controls</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Search Database Entities</label>
-            <input type="text" id="searchInput" placeholder="Filter by ID, name, status..." 
-              oninput="handleSearch(this.value)"
-              class="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500 transition-colors" />
-          </div>
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Filter by Priority</label>
-            <select id="priorityFilter" onchange="handleFilter(this.value)"
-              class="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
-              <option value="all">All Priorities</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-          </div>
-          <div class="pt-2">
-            <button onclick="simulateTrafficBatch()" class="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white font-medium transition-all">
-              ⚡ Ingest Mock Data Stream (+5 items)
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/10">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-sm font-semibold text-white">Operational Entity Registry</h3>
-        <span class="text-xs text-slate-400 font-mono" id="resultsCount">Showing 4 of 4</span>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead>
-            <tr class="border-b border-white/10 text-slate-400 uppercase tracking-wider text-[11px]">
-              <th class="pb-3 font-semibold">Entity ID</th>
-              <th class="pb-3 font-semibold">Name / Description</th>
-              <th class="pb-3 font-semibold">Priority</th>
-              <th class="pb-3 font-semibold">Status</th>
-              <th class="pb-3 font-semibold">Timestamp</th>
-              <th class="pb-3 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="entityTableBody" class="divide-y divide-white/5"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let entities = [
-      { id: "ENT-101", name: "Core Security Token Controller", priority: "High", status: "Operational", time: "Just now" },
-      { id: "ENT-102", name: "Relational Query Cache Tier", priority: "High", status: "Operational", time: "2 min ago" },
-      { id: "ENT-103", name: "Audit Trail Event Ingestion", priority: "Medium", status: "Operational", time: "5 min ago" },
-      { id: "ENT-104", name: "Batch Data Normalization Worker", priority: "Low", status: "Operational", time: "8 min ago" }
-    ];
-
-    let currentFilter = "all";
-    let currentSearch = "";
-
-    function renderTable() {
-      const tbody = document.getElementById("entityTableBody");
-      const filtered = entities.filter(item => {
-        const matchesFilter = currentFilter === "all" || item.priority === currentFilter;
-        const matchesSearch = item.name.toLowerCase().includes(currentSearch.toLowerCase()) || 
-                              item.id.toLowerCase().includes(currentSearch.toLowerCase());
-        return matchesFilter && matchesSearch;
-      });
-
-      document.getElementById("resultsCount").innerText = "Showing " + filtered.length + " of " + entities.length;
-      document.getElementById("totalRecordsCount").innerText = (1428 + entities.length - 4).toLocaleString();
-
-      tbody.innerHTML = filtered.map(item => \`
-        <tr class="hover:bg-white/[0.02] transition-colors">
-          <td class="py-3.5 font-mono text-blue-400">\${item.id}</td>
-          <td class="py-3.5 font-medium text-white">\${item.name}</td>
-          <td class="py-3.5">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold \${
-              item.priority === 'High' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-              item.priority === 'Medium' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-              'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-            }">\${item.priority}</span>
-          </td>
-          <td class="py-3.5">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              ● \${item.status}
-            </span>
-          </td>
-          <td class="py-3.5 text-slate-400 font-mono">\${item.time}</td>
-          <td class="py-3.5 text-right">
-            <button onclick="removeEntity('\${item.id}')" class="text-rose-400 hover:text-rose-300 font-medium">Delete</button>
-          </td>
-        </tr>
-      \`).join("");
-    }
-
-    function handleSearch(val) { currentSearch = val; renderTable(); }
-    function handleFilter(val) { currentFilter = val; renderTable(); }
-    function removeEntity(id) { entities = entities.filter(e => e.id !== id); renderTable(); }
-    function triggerNewItemModal() {
-      const name = prompt("Enter new entity name for ${safeName}:", "Microservice Gateway Connector");
-      if (name) {
-        entities.unshift({
-          id: "ENT-" + Math.floor(100 + Math.random() * 900),
-          name: name,
-          priority: "High",
-          status: "Operational",
-          time: "Just now"
-        });
-        renderTable();
-      }
-    }
-
-    function simulateTrafficBatch() {
-      for (let i = 0; i < 5; i++) {
-        entities.unshift({
-          id: "ENT-" + Math.floor(100 + Math.random() * 900),
-          name: "Telemetry Pipeline Stream " + (entities.length + 1),
-          priority: i % 2 === 0 ? "Medium" : "High",
-          status: "Operational",
-          time: "Just now"
-        });
-      }
-      renderTable();
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      renderTable();
-      const ctx = document.getElementById("telemetryChart").getContext("2d");
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Now'],
-          datasets: [{
-            label: 'Ingestion Ops/sec',
-            data: [320, 450, 680, 1150, 940, 1420, 1850],
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            fill: true,
-            tension: 0.4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
-            y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
-          }
-        }
-      });
-    });
-  </script>
-</body>
-</html>`;
+function generateInitialAppHtml(projectName: string, category?: string, summary?: string, features?: any[]): string {
+  return generateDomainAppHtml({
+    projectName,
+    category,
+    summary,
+    features
+  });
 }
 
 export function AiTeamCard() {
@@ -295,7 +74,14 @@ export function AiTeamCard() {
   const [selectedAgentTab, setSelectedAgentTab] = useState<"topology" | "comms" | "code" | "qa" | "release" | "preview">("preview");
   const [swarmStage, setSwarmStage] = useState<SwarmStage>("idle");
   const [isRunningSwarm, setIsRunningSwarm] = useState(false);
-  const [liveAppHtml, setLiveAppHtml] = useState<string>(() => generateInitialAppHtml(buildFlow?.overview?.projectName || "Enterprise System"));
+  const [liveAppHtml, setLiveAppHtml] = useState<string>(() =>
+    generateDomainAppHtml({
+      projectName: buildFlow?.overview?.projectName,
+      category: buildFlow?.overview?.projectCategory,
+      summary: buildFlow?.overview?.executiveSummary,
+      features: buildFlow?.features
+    })
+  );
   const [qaReportData, setQaReportData] = useState<any>(null);
   const [customFiles, setCustomFiles] = useState<GeneratedFile[] | null>(null);
   const [executionSpeed, setExecutionSpeed] = useState<"normal" | "fast">("normal");
@@ -509,15 +295,19 @@ CMD ["node", "server.js"]`
     }
   }, [displayFiles, selectedFilePath]);
 
-  // Set default liveAppHtml if empty
+  // Synchronize liveAppHtml when overview or features change
   useEffect(() => {
-    if (!liveAppHtml) {
-      const htmlFile = displayFiles.find(f => f.path.endsWith(".html"));
-      if (htmlFile) {
-        setLiveAppHtml(htmlFile.code);
-      }
+    if (overview?.projectName) {
+      setLiveAppHtml(
+        generateDomainAppHtml({
+          projectName: overview.projectName,
+          category: overview.projectCategory,
+          summary: overview.executiveSummary,
+          features
+        })
+      );
     }
-  }, [displayFiles, liveAppHtml]);
+  }, [overview?.projectName, overview?.projectCategory, overview?.executiveSummary, features]);
 
   // Dynamic simulation conversation
   const [messages, setMessages] = useState<AgentMessage[]>([
@@ -599,6 +389,7 @@ CMD ["node", "server.js"]`
         body: JSON.stringify({
           projectName: overview.projectName,
           idea: overview.executiveSummary,
+          category: overview.projectCategory,
           features,
           techStack,
           runtimeMode
@@ -1332,7 +1123,7 @@ CMD ["node", "server.js"]`
 
             <div className="rounded-2xl border border-white/10 overflow-hidden bg-[#090A0F] shadow-2xl min-h-[660px]">
               <iframe
-                srcDoc={liveAppHtml || generateInitialAppHtml(overview.projectName)}
+                srcDoc={liveAppHtml || generateInitialAppHtml(overview.projectName, overview.projectCategory, overview.executiveSummary, features)}
                 title="Synthesized Live Application"
                 className="w-full h-[660px] border-0 bg-[#090A0F]"
                 sandbox="allow-scripts allow-forms allow-modals allow-popups"
