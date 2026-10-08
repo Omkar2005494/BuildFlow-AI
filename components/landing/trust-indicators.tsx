@@ -2,11 +2,12 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Zap, ShieldCheck, Cloud, BrainCircuit } from "lucide-react";
+import { Zap, ShieldCheck, Cloud, BrainCircuit, Users2 } from "lucide-react";
 
 const INDICATORS = [
   { label: "AI Powered", icon: <BrainCircuit className="w-4 h-4" /> },
   { label: "Fast Generation", icon: <Zap className="w-4 h-4" /> },
+  { label: "Autonomous Swarm (Track 1)", icon: <Users2 className="w-4 h-4" /> },
   { label: "Secure Authentication", icon: <ShieldCheck className="w-4 h-4" /> },
   { label: "Cloud Saving", icon: <Cloud className="w-4 h-4" /> },
 ];

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { BuildFlow } from "@/types";
 
-export type ProviderId = "openai" | "anthropic" | "gemini" | "groq" | "nvidia";
+export type ProviderId = "openai" | "anthropic" | "gemini" | "groq" | "nvidia" | "ollama";
 export type RoutingStrategy = "automatic" | "balanced" | "fastest" | "highest_quality" | "lowest_cost" | "reasoning_optimized" | "manual";
 
 export interface CapabilityMatrix {

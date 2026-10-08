@@ -14,6 +14,7 @@ const LoadingFallback = () => (
 );
 
 const OverviewCard = dynamic(() => import("@/components/dashboard/overview-card").then(m => m.OverviewCard), { loading: LoadingFallback });
+const AiTeamCard = dynamic(() => import("@/components/dashboard/ai-team-card").then(m => m.AiTeamCard), { loading: LoadingFallback });
 const ArchitectureCard = dynamic(() => import("@/components/dashboard/architecture-card").then(m => m.ArchitectureCard), { loading: LoadingFallback });
 const DatabaseCard = dynamic(() => import("@/components/dashboard/database-card").then(m => m.DatabaseCard), { loading: LoadingFallback });
 const ApiViewer = dynamic(() => import("@/components/dashboard/api-viewer").then(m => m.ApiViewer), { loading: LoadingFallback });
@@ -40,6 +41,7 @@ export default function DashboardPage() {
   const renderSection = () => {
     switch (selectedSection) {
       case "overview": return <OverviewCard />;
+      case "ai-team": return <AiTeamCard />;
       case "architecture": return <ArchitectureCard />;
       case "database": return <DatabaseCard />;
       case "api": return <ApiViewer />;

@@ -8,6 +8,7 @@ import { AnthropicAdapter } from "./providers/anthropic.adapter";
 import { GeminiAdapter } from "./providers/gemini.adapter";
 import { GroqAdapter } from "./providers/groq.adapter";
 import { NvidiaAdapter } from "./providers/nvidia.adapter";
+import { OllamaAdapter } from "./providers/ollama.adapter";
 
 export class AIPlatform {
   private adapters: Map<ProviderId, ProviderAdapter> = new Map();
@@ -17,6 +18,7 @@ export class AIPlatform {
     this.registerAdapter(new AnthropicAdapter());
     this.registerAdapter(new GeminiAdapter());
     this.registerAdapter(new GroqAdapter());
+    this.registerAdapter(new OllamaAdapter());
     // this.registerAdapter(new NvidiaAdapter()); // Disabled to prevent hanging
   }
 

@@ -18,7 +18,8 @@ import {
   ChevronLeft,
   Menu,
   X,
-  Code2
+  Code2,
+  Users2
 } from "lucide-react";
 import { exportToMarkdown, exportToJson } from "@/services/export.service";
 import Link from "next/link";
@@ -28,6 +29,7 @@ import { saveProject } from "@/services/db.service";
 
 const navItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "ai-team", label: "AI Engineering Team", icon: Users2, badge: "Swarm" },
   { id: "architecture", label: "Architecture", icon: Network },
   { id: "database", label: "Database", icon: Database },
   { id: "api", label: "API Design", icon: Terminal },
@@ -103,8 +105,13 @@ export function Sidebar() {
                 )}
               >
                 <Icon className={cn("w-4 h-4", isActive ? "text-primary" : "text-muted-foreground")} />
-                <span>{item.label}</span>
-                {isActive && (
+                <span className="truncate">{item.label}</span>
+                {item.badge && (
+                  <span className="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 font-semibold">
+                    {item.badge}
+                  </span>
+                )}
+                {isActive && !item.badge && (
                   <div className="ml-auto w-1 h-4 bg-primary rounded-full" />
                 )}
               </button>

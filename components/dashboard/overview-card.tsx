@@ -6,11 +6,12 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { 
   Lock, CreditCard, Brain, BarChart, Bell, Zap, Map, Cloud, Database, Box, Layers, 
-  CheckCircle2, Clock, Calendar, Users, Rocket, Layout, FileText, Settings, Shield, Server, ArrowRightLeft, AppWindow
+  CheckCircle2, Clock, Calendar, Users, Rocket, Layout, FileText, Settings, Shield, Server, ArrowRightLeft, AppWindow,
+  Users2, ArrowRight
 } from "lucide-react";
 
 export function OverviewCard() {
-  const { buildFlow } = useBuildFlowStore();
+  const { buildFlow, setSelectedSection } = useBuildFlowStore();
   if (!buildFlow) return null;
 
   const { overview, features } = buildFlow;
@@ -66,6 +67,37 @@ export function OverviewCard() {
             <RadialGauge score={overview.buildQuality.overallScore} />
           </div>
         </div>
+      </motion.div>
+
+      {/* Autonomous AI Swarm CTA Banner */}
+      <motion.div 
+        variants={itemVariants}
+        className="rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/10 via-purple-500/5 to-transparent p-6 backdrop-blur-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative overflow-hidden group"
+      >
+        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary shrink-0 shadow-lg shadow-primary/10">
+            <Users2 className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-white">Autonomous AI Engineering Team Available</h3>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                Track 1 Swarm
+              </span>
+            </div>
+            <p className="text-xs text-white/60 mt-1 max-w-xl">
+              Dispatch autonomous Planning, Building, QA, and Deployment agents to write code, conduct automated testing, and generate production release bundles.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setSelectedSection("ai-team")}
+          className="shrink-0 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-md shadow-primary/20 relative z-10"
+        >
+          <span>Open Swarm Workspace</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
       </motion.div>
 
       {/* 2. Executive Metrics */}

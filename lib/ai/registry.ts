@@ -171,6 +171,44 @@ export const MODEL_REGISTRY: ModelRegistryEntry[] = [
       toolCalling: true,
       reasoning: true
     }
+  },
+
+  // OLLAMA (LOCAL)
+  {
+    id: "llama3.2:3b",
+    providerId: "ollama",
+    displayName: "Llama 3.2 3B (Local)",
+    contextWindow: 131072,
+    maxOutputTokens: 8192,
+    speedRating: 5,
+    qualityRating: 3.5,
+    reasoningRating: 3,
+    estimatedCostPer1M: 0,
+    capabilities: {
+      jsonOutput: true,
+      vision: false,
+      streaming: false,
+      toolCalling: true,
+      reasoning: false
+    }
+  },
+  {
+    id: "llama3.2:1b",
+    providerId: "ollama",
+    displayName: "Llama 3.2 1B (Local)",
+    contextWindow: 131072,
+    maxOutputTokens: 8192,
+    speedRating: 5,
+    qualityRating: 2.5,
+    reasoningRating: 2,
+    estimatedCostPer1M: 0,
+    capabilities: {
+      jsonOutput: true,
+      vision: false,
+      streaming: false,
+      toolCalling: true,
+      reasoning: false
+    }
   }
 ];
 
