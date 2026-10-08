@@ -228,27 +228,53 @@ Return ONLY the complete HTML file, nothing else.`;
 
     try {
       const groqAdapter = new GroqAdapter();
-      const generatedHtml = await groqAdapter.generateText(
-        htmlSystemPrompt,
-        htmlUserPrompt,
-        "openai/gpt-oss-120b",
-        6000
-      );
+      let generatedHtml = "";
 
-      // Extract HTML if wrapped in code fences
-      const fenceMatch = generatedHtml.match(/```(?:html)?\s*([\s\S]+?)```/i);
-      const cleanHtml = fenceMatch ? fenceMatch[1].trim() : generatedHtml.trim();
+      try {
+        generatedHtml = await groqAdapter.generateText(
+          htmlSystemPrompt,
+          htmlUserPrompt,
+          "openai/gpt-oss-120b",
+          6000
+        );
+      } catch (primaryErr: any) {
+        console.warn("gpt-oss-120b HTML generation failed, trying qwen fallback:", primaryErr.message);
+        generatedHtml = await groqAdapter.generateText(
+          htmlSystemPrompt,
+          htmlUserPrompt,
+          "qwen/qwen3.8-27b",
+          3500
+        );
+      }
+
+      // Robust extraction of HTML (strip fences, preambles, and conversational text)
+      let cleanHtml = generatedHtml.trim();
+      const fenceMatch = cleanHtml.match(/```(?:html)?\s*([\s\S]+?)```/i);
+      if (fenceMatch) {
+        cleanHtml = fenceMatch[1].trim();
+      } else {
+        const docTypeIdx = cleanHtml.toLowerCase().indexOf("<!doctype html");
+        const htmlTagIdx = cleanHtml.toLowerCase().indexOf("<html");
+        const startIdx = docTypeIdx !== -1 ? docTypeIdx : htmlTagIdx;
+        if (startIdx !== -1) {
+          cleanHtml = cleanHtml.slice(startIdx);
+        }
+        const endIdx = cleanHtml.toLowerCase().lastIndexOf("</html>");
+        if (endIdx !== -1) {
+          cleanHtml = cleanHtml.slice(0, endIdx + 7);
+        }
+      }
 
       if (
-        cleanHtml.length > 500 &&
-        (cleanHtml.includes("<!DOCTYPE html>") || cleanHtml.includes("<html")) &&
-        cleanHtml.includes("<body") &&
-        cleanHtml.includes("<script")
+        cleanHtml.length > 400 &&
+        (cleanHtml.toLowerCase().includes("<!doctype html") || cleanHtml.toLowerCase().includes("<html")) &&
+        cleanHtml.toLowerCase().includes("<body") &&
+        cleanHtml.toLowerCase().includes("<script")
       ) {
         synthesizedHtml = cleanHtml;
         console.log("✅ AI-generated HTML app synthesized successfully, length:", cleanHtml.length);
       } else {
-        throw new Error("Generated HTML failed validation checks");
+        throw new Error("Generated HTML failed structural validation checks (missing doctype/body/script or too short)");
       }
     } catch (htmlErr: any) {
       console.warn("⚠️ Dedicated HTML generation failed, using domain template fallback:", htmlErr.message);

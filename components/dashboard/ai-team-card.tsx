@@ -290,23 +290,29 @@ CMD ["nginx", "-g", "daemon off;"]`
     }
   }, [displayFiles, selectedFilePath]);
 
-  // Synchronize liveAppHtml and custom files when overview or features change
+  // Synchronize liveAppHtml and custom files ONLY when project changes (new project)
+  // We track whether swarm has set AI HTML so we don't overwrite it
+  const aiHtmlSetRef = React.useRef(false);
+
   useEffect(() => {
     if (overview?.projectName) {
-      if (prevProjectNameRef.current !== overview.projectName) {
+      const isNewProject = prevProjectNameRef.current !== overview.projectName;
+      if (isNewProject) {
         prevProjectNameRef.current = overview.projectName;
         hasAutoLaunchedRef.current = false;
+        aiHtmlSetRef.current = false; // Reset AI HTML flag for new project
         setSwarmStage("idle");
+        setCustomFiles(null);
+        // Only reset to template for a brand new project
+        setLiveAppHtml(
+          generateDomainAppHtml({
+            projectName: overview.projectName,
+            category: overview.projectCategory,
+            summary: overview.executiveSummary,
+            features
+          })
+        );
       }
-      setCustomFiles(null);
-      setLiveAppHtml(
-        generateDomainAppHtml({
-          projectName: overview.projectName,
-          category: overview.projectCategory,
-          summary: overview.executiveSummary,
-          features
-        })
-      );
     }
   }, [overview?.projectName, overview?.projectCategory, overview?.executiveSummary, features]);
 
@@ -403,6 +409,7 @@ CMD ["nginx", "-g", "daemon off;"]`
           setMessages(data.messages);
         }
         if (data.synthesizedAppHtml) {
+          aiHtmlSetRef.current = true;
           setLiveAppHtml(data.synthesizedAppHtml);
         }
         if (data.files && Array.isArray(data.files)) {
@@ -1283,7 +1290,7 @@ CMD ["nginx", "-g", "daemon off;"]`
                 srcDoc={liveAppHtml || generateInitialAppHtml(overview.projectName, overview.projectCategory, overview.executiveSummary, features)}
                 title="Synthesized Live Application"
                 className="w-full h-[660px] border-0 bg-[#090A0F]"
-                sandbox="allow-scripts allow-forms allow-modals allow-popups"
+                sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
               />
             </div>
           </motion.div>
