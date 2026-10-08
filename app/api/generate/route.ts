@@ -19,20 +19,15 @@ export async function POST(req: NextRequest) {
   // Generate a unique Request ID
   const requestId = crypto.randomUUID();
 
-  // Verify Firebase Auth Token
+  // Optional Auth Header Verification (No longer mandatory)
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    logger.warn({ requestId }, "Missing or invalid authorization header");
-    return NextResponse.json({ error: "Unauthorized. Please sign in." }, { status: 401 });
-  }
-
-  const token = authHeader.split("Bearer ")[1];
-  let decodedToken;
-  try {
-    decodedToken = await adminAuth.verifyIdToken(token);
-  } catch (error) {
-    logger.warn({ requestId, error }, "Invalid Firebase ID token");
-    return NextResponse.json({ error: "Unauthorized. Invalid session." }, { status: 401 });
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.split("Bearer ")[1];
+    try {
+      await adminAuth.verifyIdToken(token);
+    } catch (error) {
+      logger.info({ requestId }, "Optional auth token invalid, proceeding as guest session");
+    }
   }
 
   try {

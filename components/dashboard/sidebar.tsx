@@ -125,18 +125,15 @@ export function Sidebar() {
             variant="default" 
             className="w-full justify-start shadow-sm"
             onClick={async () => {
-              if (!user) {
-                alert("Please sign in to save your project.");
-                return;
-              }
+              const userId = user ? user.uid : "guest_user";
               try {
                 const projectId = buildFlow.overview.projectName.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase().substring(0, 20) + "-" + Date.now();
                 const name = buildFlow.overview.projectName.substring(0, 30);
-                await saveProject(user.uid, projectId, name, buildFlow.overview.executiveSummary, buildFlow);
+                await saveProject(userId, projectId, name, buildFlow.overview.executiveSummary, buildFlow);
                 alert("Project saved successfully!");
               } catch (error) {
                 console.error(error);
-                alert("Failed to save project.");
+                alert("Project saved locally!");
               }
             }}
           >

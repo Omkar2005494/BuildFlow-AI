@@ -47,10 +47,7 @@ export default function LandingPage() {
         }),
       });
 
-      if (response.status === 401) {
-        setShowLoginModal(true);
-        return;
-      }
+
 
       if (response.status === 429) {
         alert("Rate limit exceeded. Please try again later.");
