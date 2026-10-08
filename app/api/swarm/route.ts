@@ -154,11 +154,17 @@ Return valid JSON with:
     const tryGroq = async () => {
       const adapter = new GroqAdapter();
       try {
-        const raw = await adapter.generateJSON(prompt, "qwen/qwen3.8-27b", 800);
+        const raw = await adapter.generateJSON(prompt, "openai/gpt-oss-20b", 600);
         return JSON.parse(raw);
       } catch (err: any) {
-        console.warn("Groq qwen failed:", err.message);
-        throw err;
+        console.warn("Groq gpt-oss-20b failed, trying qwen fallback:", err.message);
+        try {
+          const raw2 = await adapter.generateJSON(prompt, "qwen/qwen3.8-27b", 700);
+          return JSON.parse(raw2);
+        } catch (err2: any) {
+          console.warn("Groq qwen also failed:", err2.message);
+          throw err2;
+        }
       }
     };
 
@@ -225,8 +231,8 @@ Return ONLY the complete HTML file, nothing else.`;
       const generatedHtml = await groqAdapter.generateText(
         htmlSystemPrompt,
         htmlUserPrompt,
-        "llama-3.3-70b-versatile",
-        8000
+        "openai/gpt-oss-120b",
+        6000
       );
 
       // Extract HTML if wrapped in code fences
