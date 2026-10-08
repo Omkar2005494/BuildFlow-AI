@@ -29,7 +29,7 @@ function normalizeBuildFlow(data: any): any {
     data.buildQualityScore = 90;
   }
 
-  if (!data.engineeringMetrics || typeof data.engineeringMetrics !== "object") {
+  if (!data.engineeringMetrics || typeof data.engineeringMetrics !== "object" || Array.isArray(data.engineeringMetrics)) {
     data.engineeringMetrics = {
       scalability: 92,
       maintainability: 90,
@@ -38,72 +38,53 @@ function normalizeBuildFlow(data: any): any {
       developmentDifficulty: "Moderate",
       estimatedBuildTime: "8-12 Weeks"
     };
+  } else {
+    if (typeof data.engineeringMetrics.scalability !== "number") data.engineeringMetrics.scalability = 92;
+    if (typeof data.engineeringMetrics.maintainability !== "number") data.engineeringMetrics.maintainability = 90;
+    if (typeof data.engineeringMetrics.security !== "number") data.engineeringMetrics.security = 94;
+    if (!["Low", "Medium", "High"].includes(data.engineeringMetrics.complexity)) data.engineeringMetrics.complexity = "Medium";
+    if (!["Easy", "Moderate", "Hard"].includes(data.engineeringMetrics.developmentDifficulty)) data.engineeringMetrics.developmentDifficulty = "Moderate";
+    if (typeof data.engineeringMetrics.estimatedBuildTime !== "string") data.engineeringMetrics.estimatedBuildTime = "8-12 Weeks";
   }
 
   // 1. Architecture normalization
-  if (typeof data.architecture === "string") {
+  if (!data.architecture || typeof data.architecture !== "object" || Array.isArray(data.architecture)) {
+    const rawDiagram = typeof data.architecture === "string"
+      ? data.architecture
+      : Array.isArray(data.architecture)
+        ? data.architecture.map((a: any) => typeof a === "string" ? a : JSON.stringify(a)).join("\n")
+        : "";
     data.architecture = {
-      diagram: data.architecture,
-      description: "Scalable microservices and cloud infrastructure architecture."
+      diagram: (rawDiagram.includes("graph ") || rawDiagram.includes("flowchart "))
+        ? rawDiagram
+        : "graph TD\n  Client[Client App] --> API[API Gateway]\n  API --> Service[Core Service]\n  Service --> DB[(Database)]",
+      description: "Distributed modular architecture designed for high availability and elastic scaling."
     };
-  } else if (!data.architecture) {
-    data.architecture = {
-      diagram: "graph TD\n  Client[Client App] --> API[API Gateway]\n  API --> Service[Core Service]\n  Service --> DB[(Database)]",
-      description: "Distributed modular architecture designed for high availability."
-    };
+  } else {
+    if (typeof data.architecture.diagram !== "string" || !data.architecture.diagram) {
+      data.architecture.diagram = "graph TD\n  Client[Client App] --> API[API Gateway]\n  API --> Service[Core Service]\n  Service --> DB[(Database)]";
+    }
+    if (typeof data.architecture.description !== "string" || !data.architecture.description) {
+      data.architecture.description = "Distributed modular architecture designed for high availability and elastic scaling.";
+    }
   }
 
   // 2. Database normalization
-  if (typeof data.database === "string") {
+  if (!data.database || typeof data.database !== "object" || Array.isArray(data.database)) {
+    const rawDb = typeof data.database === "string" ? data.database : "";
     data.database = {
-      diagram: data.database,
-      schemaDescription: "Normalized relational schema with primary and foreign key constraints.",
-      insights: {
-        quality: {
-          normalizationLevel: "3NF",
-          estimatedComplexity: "Medium",
-          tableCount: 12,
-          relationshipCount: 16,
-          junctionTableCount: 4,
-          indexedColumns: 8,
-          estimatedGrowth: "15GB/mo"
-        },
-        performance: {
-          suggestedIndexes: ["idx_users_email", "idx_created_at"],
-          potentialQueryBottlenecks: ["Large pagination joins"],
-          fastestGrowingTables: ["audit_logs", "events"],
-          cachingTargets: ["user_sessions"],
-          readHeavyTables: ["resources", "profiles"],
-          writeHeavyTables: ["telemetry", "events"]
-        },
-        scalability: {
-          partitioningRecommendations: ["Range partition on created_at"],
-          archivingStrategy: ["Cold tier after 90 days"],
-          horizontalScaling: ["Read replicas"],
-          cachingSuggestions: ["Redis cluster"],
-          readReplicaRecommendations: ["2 read replicas"],
-          storageRecommendations: ["Managed NVMe SSD"]
-        },
-        security: {
-          sensitiveTables: ["users", "credentials"],
-          encryptedFields: ["password_hash", "tokens"],
-          piiStorage: ["email", "name"],
-          auditLogging: ["auth_events"],
-          accessControl: ["RBAC"]
-        },
-        futureExpansion: {
-          supportedFeatures: ["Multi-tenancy"],
-          requiresAdditionalTables: ["organizations"],
-          migrationConsiderations: ["Zero-downtime schema migrations"],
-          potentialModules: ["Analytics"]
-        }
-      }
+      diagram: rawDb.includes("erDiagram")
+        ? rawDb
+        : "erDiagram\n  USER ||--o{ ORDER : places\n  USER { string id PK string email }",
+      schemaDescription: "Normalized relational schema with primary and foreign key constraints."
     };
-  } else if (!data.database) {
-    data.database = {
-      diagram: "erDiagram\n  USER ||--o{ ORDER : places\n  USER { string id PK string email }",
-      schemaDescription: "Production normalized database design."
-    };
+  } else {
+    if (typeof data.database.diagram !== "string" || !data.database.diagram) {
+      data.database.diagram = "erDiagram\n  USER ||--o{ ORDER : places\n  USER { string id PK string email }";
+    }
+    if (typeof data.database.schemaDescription !== "string" || !data.database.schemaDescription) {
+      data.database.schemaDescription = "Normalized relational schema with primary and foreign key constraints.";
+    }
   }
 
   // 3. API normalization
@@ -354,10 +335,16 @@ function normalizeBuildFlow(data: any): any {
       { name: "Core Resource Management", description: "CRUD operations and business logic handlers", priority: "High" },
       { name: "Audit Logging & Telemetry", description: "Observability and operational monitoring", priority: "Medium" }
     ];
+  } else {
+    data.features = data.features.map((f: any, idx: number) => ({
+      name: typeof f?.name === "string" ? f.name : `Feature ${idx + 1}`,
+      description: typeof f?.description === "string" ? f.description : "Core system capability",
+      priority: typeof f?.priority === "string" ? f.priority : "High"
+    }));
   }
 
   // 9. Overview normalization
-  if (!data.overview || typeof data.overview !== "object") {
+  if (!data.overview || typeof data.overview !== "object" || Array.isArray(data.overview)) {
     data.overview = {
       projectName: "Software Architecture",
       projectCategory: "Web Application",
@@ -374,6 +361,53 @@ function normalizeBuildFlow(data: any): any {
       aiArchitectInsights: ["Decoupled microservice architecture ensures high availability."],
       businessMetrics: { estimatedDevelopmentTime: "12 Weeks", estimatedTeamSize: "4 Engineers", estimatedProjectCost: "$50,000", maintenanceComplexity: "Medium", scalingDifficulty: "Low", technicalRisk: "Low" }
     };
+  } else {
+    if (typeof data.overview.projectName !== "string") data.overview.projectName = "Software Architecture";
+    if (typeof data.overview.projectCategory !== "string") data.overview.projectCategory = "Web Application";
+    if (typeof data.overview.architectureStyle !== "string") data.overview.architectureStyle = "Modular Microservices";
+    if (typeof data.overview.complexityBadge !== "string") data.overview.complexityBadge = "Production-Grade";
+    if (typeof data.overview.estimatedTimeline !== "string") data.overview.estimatedTimeline = "10-12 Weeks";
+    if (typeof data.overview.recommendedTeamSize !== "string") data.overview.recommendedTeamSize = "4 Engineers";
+    if (typeof data.overview.executiveSummary !== "string") data.overview.executiveSummary = "Production-ready enterprise blueprint.";
+    if (!Array.isArray(data.overview.projectCharacteristics)) data.overview.projectCharacteristics = ["Scalable", "Resilient", "Maintainable"];
+    if (!Array.isArray(data.overview.technologySummary)) data.overview.technologySummary = ["Next.js", "TypeScript", "PostgreSQL"];
+    if (!Array.isArray(data.overview.aiArchitectInsights)) data.overview.aiArchitectInsights = ["Modular decoupled architecture for high velocity."];
+
+    if (!data.overview.buildQuality || typeof data.overview.buildQuality !== "object") {
+      data.overview.buildQuality = { overallScore: 92, productionReadiness: 90, scalability: 92, security: 94, maintainability: 90, performance: 95, testability: 88 };
+    } else {
+      for (const k of ["overallScore", "productionReadiness", "scalability", "security", "maintainability", "performance", "testability"]) {
+        if (typeof data.overview.buildQuality[k] !== "number") data.overview.buildQuality[k] = 90;
+      }
+    }
+
+    if (!data.overview.executiveMetrics || typeof data.overview.executiveMetrics !== "object") {
+      data.overview.executiveMetrics = { modulesCount: 8, tablesCount: 12, apiEndpointsCount: 20, developmentPhases: 4, estimatedLOC: "14,000", sprintCount: 6, infrastructureServices: 4 };
+    } else {
+      for (const k of ["modulesCount", "tablesCount", "apiEndpointsCount", "developmentPhases", "sprintCount", "infrastructureServices"]) {
+        if (typeof data.overview.executiveMetrics[k] !== "number") data.overview.executiveMetrics[k] = 4;
+      }
+      if (typeof data.overview.executiveMetrics.estimatedLOC !== "string") data.overview.executiveMetrics.estimatedLOC = "14,000";
+    }
+
+    if (!data.overview.readiness || typeof data.overview.readiness !== "object") {
+      data.overview.readiness = { architecture: "Ready", database: "Ready", api: "Ready", folderStructure: "Ready", roadmap: "Ready", documentation: "Ready", deployment: "Ready", security: "Ready" };
+    } else {
+      for (const k of ["architecture", "database", "api", "folderStructure", "roadmap", "documentation", "deployment", "security"]) {
+        if (!["Ready", "In Progress", "Planned"].includes(data.overview.readiness[k])) data.overview.readiness[k] = "Ready";
+      }
+    }
+
+    if (!data.overview.businessMetrics || typeof data.overview.businessMetrics !== "object") {
+      data.overview.businessMetrics = { estimatedDevelopmentTime: "12 Weeks", estimatedTeamSize: "4 Engineers", estimatedProjectCost: "$50,000", maintenanceComplexity: "Medium", scalingDifficulty: "Low", technicalRisk: "Low" };
+    } else {
+      if (typeof data.overview.businessMetrics.estimatedDevelopmentTime !== "string") data.overview.businessMetrics.estimatedDevelopmentTime = "12 Weeks";
+      if (typeof data.overview.businessMetrics.estimatedTeamSize !== "string") data.overview.businessMetrics.estimatedTeamSize = "4 Engineers";
+      if (typeof data.overview.businessMetrics.estimatedProjectCost !== "string") data.overview.businessMetrics.estimatedProjectCost = "$50,000";
+      if (!["Low", "Medium", "High", "Very High"].includes(data.overview.businessMetrics.maintenanceComplexity)) data.overview.businessMetrics.maintenanceComplexity = "Medium";
+      if (!["Low", "Medium", "High", "Very High"].includes(data.overview.businessMetrics.scalingDifficulty)) data.overview.businessMetrics.scalingDifficulty = "Low";
+      if (!["Low", "Medium", "High", "Critical"].includes(data.overview.businessMetrics.technicalRisk)) data.overview.businessMetrics.technicalRisk = "Low";
+    }
   }
 
   // 10. Risks & Future
