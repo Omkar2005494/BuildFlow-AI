@@ -117,6 +117,42 @@ export const MODEL_REGISTRY: ModelRegistryEntry[] = [
 
   // GROQ
   {
+    id: "qwen/qwen3.8-27b",
+    providerId: "groq",
+    displayName: "Qwen 3.8 27B (Groq Fast)",
+    contextWindow: 128000,
+    maxOutputTokens: 8192,
+    speedRating: 5,
+    qualityRating: 5,
+    reasoningRating: 5,
+    estimatedCostPer1M: 0,
+    capabilities: {
+      jsonOutput: true,
+      vision: false,
+      streaming: true,
+      toolCalling: true,
+      reasoning: true
+    }
+  },
+  {
+    id: "openai/gpt-oss-120b",
+    providerId: "groq",
+    displayName: "GPT-OSS 120B (Groq Deep)",
+    contextWindow: 128000,
+    maxOutputTokens: 8192,
+    speedRating: 5,
+    qualityRating: 5,
+    reasoningRating: 5,
+    estimatedCostPer1M: 0,
+    capabilities: {
+      jsonOutput: true,
+      vision: false,
+      streaming: true,
+      toolCalling: true,
+      reasoning: true
+    }
+  },
+  {
     id: "llama-3.3-70b-versatile",
     providerId: "groq",
     displayName: "Llama 3.3 70B (Groq)",

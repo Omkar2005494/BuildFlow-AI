@@ -1,43 +1,70 @@
 import { ProviderAdapter, ProviderId } from "../types";
+import http from "http";
 
 export class OllamaAdapter implements ProviderAdapter {
   id: ProviderId = "ollama";
   name = "Local Ollama";
-  
-  private baseUrl = "http://127.0.0.1:11434/api";
 
   async generateJSON(prompt: string, modelId: string = "llama3.2:3b"): Promise<string> {
-    try {
-      const response = await fetch(`${this.baseUrl}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: modelId,
-          messages: [{ role: "user", content: prompt }],
-          stream: false,
-          format: "json",
-          options: {
-            temperature: 0.2, // Low temp for more deterministic code/json
-            num_ctx: 32000 // Huge context window for blueprints
-          }
-        })
+    return new Promise((resolve, reject) => {
+      const payload = JSON.stringify({
+        model: modelId,
+        messages: [{ role: "user", content: prompt }],
+        stream: false,
+        format: "json",
+        options: {
+          temperature: 0.2,
+          num_ctx: 16000
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`Ollama Error: ${response.status} ${response.statusText}`);
-      }
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port: 11434,
+          path: "/api/chat",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(payload)
+          },
+          timeout: 600000 // 10 minutes timeout for local hardware
+        },
+        (res) => {
+          let data = "";
+          res.on("data", (chunk) => {
+            data += chunk;
+          });
+          res.on("end", () => {
+            if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+              try {
+                const parsed = JSON.parse(data);
+                resolve(parsed.message?.content || "");
+              } catch (e: any) {
+                reject(new Error(`Ollama JSON parse failed: ${e.message}`));
+              }
+            } else {
+              reject(new Error(`Ollama Error: HTTP ${res.statusCode} ${data}`));
+            }
+          });
+        }
+      );
 
-      const data = await response.json();
-      return data.message?.content || "";
+      req.on("error", (err) => {
+        reject(new Error(`Local Llama connection failed: ${err.message}`));
+      });
 
-    } catch (error: any) {
-      console.error("[Ollama Adapter] Generation failed:", error);
-      throw new Error(`Local Llama failed: ${error.message}`);
-    }
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new Error("Local Llama request timed out after 10 minutes"));
+      });
+
+      req.write(payload);
+      req.end();
+    });
   }
 
   isAvailable(): boolean {
-    // In a real app we could ping the local API, but for now we assume true if explicitly chosen
-    return true; 
+    return true;
   }
 }
